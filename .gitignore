@@ -1,0 +1,17 @@
+# Node and build artifacts
+node_modules/
+.next/
+.dist/
+dist/
+.env.local
+.env.*.local
+.env
+.DS_Store
+coverage/
+
+# Vercel
+.vercel/
+
+# Mac
+.idea/
+.vscode/

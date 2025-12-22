@@ -1,0 +1,14 @@
+[
+  {
+    "id": "CSE101",
+    "branch": "CSE",
+    "semester": 1,
+    "name": "Introduction to Programming"
+  },
+  {
+    "id": "CSE201",
+    "branch": "CSE",
+    "semester": 3,
+    "name": "Data Structures"
+  }
+]
