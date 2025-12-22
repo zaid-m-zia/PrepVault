@@ -1,2 +1,9 @@
-// Admin layout placeholder
-// Purpose: Layout wrapper for admin pages (uploader dashboard, resource management)
+import React from 'react';
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen">
+      <main>{children}</main>
+    </div>
+  );
+}

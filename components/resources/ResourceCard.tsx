@@ -5,7 +5,7 @@ import type { Resource } from '../../data/mock/resources';
 
 export default function ResourceCard({ resource }: { resource: Resource }) {
   return (
-    <article className="glass rounded-lg p-4 border" style={{ borderColor: 'rgba(139,92,246,0.04)' }}>
+    <article className="glass rounded-lg p-4 border hover:shadow-lg hover:-translate-y-0.5 transition-transform" style={{ borderColor: 'rgba(139,92,246,0.04)' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold font-display leading-snug">{resource.title}</h3>
@@ -21,7 +21,7 @@ export default function ResourceCard({ resource }: { resource: Resource }) {
             href={resource.url}
             role="button"
             aria-label={`Open ${resource.title}`}
-            className="ml-4 inline-flex items-center px-3 py-2 rounded-md bg-cta text-[#0a0e27] font-semibold"
+            className="ml-4 inline-flex items-center px-3 py-2 rounded-md bg-cta text-[#0a0e27] font-semibold focus:outline-none focus:ring-2 focus:ring-white/10"
             >
             Open
           </a>

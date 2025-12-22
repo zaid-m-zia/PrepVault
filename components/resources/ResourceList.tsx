@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { Resource } from '../../data/mock/resources';
 import ResourceCard from './ResourceCard';
+import ModuleAccordion from './ModuleAccordion';
 
 export default function ResourceList({ items }: { items: Resource[] }) {
   const branches = useMemo(() => Array.from(new Set(items.map((r) => r.branch))), [items]);
@@ -33,6 +34,19 @@ export default function ResourceList({ items }: { items: Resource[] }) {
       return true;
     });
   }, [items, branch, semester, subject, moduleSel]);
+
+  // Group by module for accordion display
+  const modulesGrouped = useMemo(() => {
+    const map = new Map<string, { resources: Resource[]; playlists: Resource[] }>();
+    for (const r of filtered) {
+      const key = r.module || 'General';
+      if (!map.has(key)) map.set(key, { resources: [], playlists: [] });
+      const entry = map.get(key)!;
+      if (r.type === 'Playlist') entry.playlists.push(r as Resource);
+      else entry.resources.push(r);
+    }
+    return Array.from(map.entries()).map(([moduleName, data]) => ({ moduleName, ...data }));
+  }, [filtered]);
 
   return (
     <div>
@@ -77,13 +91,13 @@ export default function ResourceList({ items }: { items: Resource[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((r) => (
-          <ResourceCard key={r.id} resource={r} />
+      <div className="space-y-6">
+        {modulesGrouped.map((m) => (
+          <ModuleAccordion key={m.moduleName} moduleName={m.moduleName} resources={m.resources} playlists={m.playlists.map((p) => ({ id: p.id, title: p.title, platform: (p as any).platform, coverage: (p as any).coverage, examRelevance: p.examRelevance, url: p.url }))} />
         ))}
-      </div>
 
-      {filtered.length === 0 && <div className="mt-6 text-sm text-secondary-text">No resources found for selected filters.</div>}
+        {filtered.length === 0 && <div className="mt-6 text-sm text-secondary-text">No resources found for selected filters.</div>}
+      </div>
     </div>
   );
 }
