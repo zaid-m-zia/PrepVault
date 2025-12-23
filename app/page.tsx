@@ -1,5 +1,6 @@
 import Link from 'next/link';
-
+// HomePage component (server-side)
+// Purpose: Landing page with hero section introducing PrepVault and call-to-action button
 export default function HomePage() {
   return (
     <section className="min-h-[60vh] flex items-center justify-center">
