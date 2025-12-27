@@ -59,7 +59,7 @@ export default function Header(): JSX.Element {
               <Link href="/events" className="hover:text-primary-text">Events</Link>
             </li>
             <li>
-              <Link href="/hackmate" className="hover:text-primary-text">Hackmate</Link>
+              <Link href="/hackhub" className="hover:text-primary-text">HackHub</Link>
             </li>
             <li>
               <Link href="/profile" className="hover:text-primary-text">Profile</Link>
@@ -106,7 +106,7 @@ export default function Header(): JSX.Element {
                   <Link role="menuitem" tabIndex={open ? 0 : -1} href="/events" className="block px-2 py-2 rounded-md hover:bg-white/5">Events</Link>
                 </li>
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/hackmate" className="block px-2 py-2 rounded-md hover:bg-white/5">Hackmate</Link>
+                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/hackhub" className="block px-2 py-2 rounded-md hover:bg-white/5">HackHub</Link>
                 </li>
                 <li>
                   <Link role="menuitem" tabIndex={open ? 0 : -1} href="/profile" className="block px-2 py-2 rounded-md hover:bg-white/5">Profile</Link>

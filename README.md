@@ -14,7 +14,7 @@ Key Features (MVP)
 - Course-driven resource browsing (branch, semester, subject, module)
 - Resource types: links (YouTube, Drive, GitHub) with metadata and descriptions; PDF upload support deferred to later
 - Search and filters (subject, module, exam relevance)
-- Events page and simple Hackmate placeholder
+- Events page and simple HackHub placeholder
 - User profile (view-only for initial MVP with bookmarks/collections planned)
 
 Tech Stack

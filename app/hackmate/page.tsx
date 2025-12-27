@@ -1,8 +1,6 @@
-export default function HackmatePage() {
-  return (
-    <section className="py-8">
-      <h1 className="text-xl font-display font-semibold">Hackmate</h1>
-      <p className="mt-2 text-sm text-secondary-text">Hackmate announcements and resources.</p>
-    </section>
-  );
+import { redirect } from 'next/navigation';
+
+export default function HackmateRedirect() {
+  // Redirect old Hackmate route to new HackHub
+  redirect('/hackhub');
 }
