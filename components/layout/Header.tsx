@@ -2,14 +2,38 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import supabase from '../../lib/supabaseClient';
 
 // Header component (client-side for interactivity)
 // Purpose: Reusable, responsive header aligned with PrepVault design system
 
 export default function Header(): JSX.Element {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  const [user, setUser] = useState<any | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }: any) => {
+      if (!mounted) return;
+      setUser(data?.user ?? null);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      setUser(session?.user ?? null);
+    });
+
+    const subscription = data?.subscription;
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -33,6 +57,12 @@ export default function Header(): JSX.Element {
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push('/');
+  }
 
   return (
     <header className="py-4 px-6">
@@ -63,6 +93,17 @@ export default function Header(): JSX.Element {
             </li>
             <li>
               <Link href="/profile" className="hover:text-primary-text">Profile</Link>
+            </li>
+
+            <li>
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm">{user.email ?? user.id}</span>
+                  <button onClick={signOut} className="px-3 py-1 rounded-md glass border">Logout</button>
+                </div>
+              ) : (
+                <Link href="/login" className="hover:text-primary-text">Login</Link>
+              )}
             </li>
           </ul>
 
@@ -110,6 +151,17 @@ export default function Header(): JSX.Element {
                 </li>
                 <li>
                   <Link role="menuitem" tabIndex={open ? 0 : -1} href="/profile" className="block px-2 py-2 rounded-md hover:bg-white/5">Profile</Link>
+                </li>
+
+                <li>
+                  {user ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm">{user.email ?? user.id}</span>
+                      <button onClick={() => { signOut(); setOpen(false); }} className="px-3 py-1 rounded-md glass border">Logout</button>
+                    </div>
+                  ) : (
+                    <Link role="menuitem" tabIndex={open ? 0 : -1} href="/login" className="block px-2 py-2 rounded-md hover:bg-white/5">Login</Link>
+                  )}
                 </li>
               </ul>
             </div>
