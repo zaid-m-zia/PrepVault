@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [usernameError, setUsernameError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
 
   async function signIn() {
     setLoading(true)
@@ -41,25 +42,45 @@ export default function LoginPage() {
     setLoading(true)
     setMessage(null)
     setUsernameError(null)
+    setEmailError(null)
 
     try {
       // Check if username already exists
-      const { data: existing, error: checkError } = await supabase
+      const { data: existingUsername, error: usernameCheckError } = await supabase
         .from('profiles')
         .select('id')
         .eq('username', username)
         .limit(1)
         .maybeSingle()
 
-      if (checkError) {
+      if (usernameCheckError) {
         setMessage('Error checking username availability.')
         setLoading(false)
         return
       }
 
-      if (existing) {
-        setUsernameError('Username already taken, please choose another.')
-        setMessage(null)
+      if (existingUsername) {
+        setUsernameError('This username is already taken. Please choose another one.')
+        setLoading(false)
+        return
+      }
+
+      // Check if email already exists in profiles
+      const { data: existingEmail, error: emailCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .limit(1)
+        .maybeSingle()
+
+      if (emailCheckError) {
+        setMessage('Error checking email availability.')
+        setLoading(false)
+        return
+      }
+
+      if (existingEmail) {
+        setEmailError('An account with this email already exists. Try logging in or use another email.')
         setLoading(false)
         return
       }
@@ -94,7 +115,7 @@ export default function LoginPage() {
         // Handle unique constraint race or other DB errors
         // If username unique constraint triggered, show friendly message
         if (insertError.code === '23505' || /unique/i.test(insertError.message || '')) {
-          setUsernameError('Username already taken, please choose another.')
+          setUsernameError('This username is already taken. Please choose another one.')
           setMessage(null)
         } else {
           setMessage(insertError.message || 'Failed to create profile.')
@@ -154,7 +175,8 @@ export default function LoginPage() {
           {/* Email + Password always shown */}
           <label className="block mb-3">
             <div className="text-sm text-secondary-text mb-1">Email</div>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="w-full px-3 py-2 rounded-md bg-transparent border border-white/6" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className={`w-full px-3 py-2 rounded-md bg-transparent border ${emailError ? 'border-rose-400' : 'border-white/6'}`} />
+            {emailError && <p className="text-red-400 text-sm mt-1">{emailError}</p>}
           </label>
 
           <label className="block mb-4">
@@ -162,7 +184,7 @@ export default function LoginPage() {
             <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" className="w-full px-3 py-2 rounded-md bg-transparent border border-white/6" />
           </label>
 
-          {message && <div className="text-sm text-rose-400 mb-3">{message}</div>}
+          {message && <div className="text-red-400 text-sm mt-1 mb-3">{message}</div>}
 
           <div className="flex gap-3">
             <button type="submit" disabled={loading} className="bg-accent text-[#0a0e27] px-4 py-2 rounded-md font-semibold">{loading ? (isSignup ? 'Registering...' : 'Signing in...') : (isSignup ? 'Sign up' : 'Login')}</button>
