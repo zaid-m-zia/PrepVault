@@ -6,12 +6,18 @@ export default function HomePage() {
     <section className="min-h-[60vh] flex items-center justify-center">
       <div className="mx-auto w-full max-w-3xl text-center px-4">
         <div className="glass p-8 md:p-12 rounded-lg">
-          <h1 className="text-4xl md:text-6xl font-display font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-accent-from to-accent-to">
-            PrepVault — Centralized, exam-focused resources
-          </h1>
+          <h1 className="text-4xl md:text-6xl font-display font-bold leading-tight">
+ <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-from to-accent-to">
+    PrepVault
+  </span>
+  <br />
+  <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-from to-accent-to">
+    Your all-in-one student success hub
+  </span>
+</h1>
 
           <p className="mt-4 text-lg text-secondary-text max-w-2xl mx-auto">
-            Curated notes, past papers, solutions, and hand-picked playlists organized by branch, semester, subject, and module — everything you need to prepare confidently for mid and end semester exams.
+            From curated study resources and past papers to finding teammates for hackathons, Exploring Events, and collaboration opportunities — everything you need to learn, build, grow, and win, all in one place.
           </p>
 
           <div className="mt-8 flex justify-center">
