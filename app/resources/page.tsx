@@ -1,5 +1,4 @@
-import { MOCK_RESOURCES } from '../../data/mock/resources';
-import ResourceList from '../../components/resources/ResourceList';
+import ResourcesTabs from '../../components/resources/ResourcesTabs';
 
 export default function ResourcesPage() {
   return (
@@ -10,7 +9,7 @@ export default function ResourcesPage() {
           <p className="mt-2 text-sm text-secondary-text">Browse curated, exam-focused resources organized by branch, semester, subject, and module. Expand a module to see Study Resources grouped into Notes / PYQs / Solutions / Reference, and a separate "Recommended Playlists" section for YouTube playlists.</p>
         </div>
 
-        <ResourceList items={MOCK_RESOURCES} />
+        <ResourcesTabs />
       </div>
     </section>
   );

@@ -2,7 +2,7 @@
 // Purpose: Frontend-only mock resource list for the Resources page UI
 // NOTE: This file is intentionally simple and mocked; replace with real backend data later.
 
-export type ResourceType = 'Notes' | 'PYQ' | 'Playlist' | 'Solution' | 'Reference';
+export type ResourceType = 'Notes' | 'PYQ' | 'Playlist' | 'Solution' | 'Reference' | 'Assignment' | 'PPT';
 export type ExamRelevance = 'Mid-sem' | 'End-sem' | 'Both';
 
 export interface Resource {
@@ -165,6 +165,32 @@ export const MOCK_RESOURCES: Resource[] = [
     type: 'Reference',
     examRelevance: 'Both',
     description: 'A quick reference sheet for Karnaugh maps and common simplifications.',
+    url: '#',
+  },
+
+  // Sample Assignment and PPT entries to populate tabs
+  {
+    id: 'a1',
+    branch: 'CSE',
+    semester: 3,
+    subject: 'Data Structures',
+    module: 'Trees & Graphs',
+    title: 'Tree Practice Assignment 1',
+    type: 'Assignment',
+    examRelevance: 'Mid-sem',
+    description: 'Assignment with programming and short-answer questions focused on tree traversals.',
+    url: '#',
+  },
+  {
+    id: 'ppt1',
+    branch: 'CSE',
+    semester: 3,
+    subject: 'Data Structures',
+    module: 'Sorting & Searching',
+    title: 'Sorting Algorithms — Lecture PPT',
+    type: 'PPT',
+    examRelevance: 'Mid-sem',
+    description: 'Slide deck covering sorting algorithms, complexities, and examples.',
     url: '#',
   },
 ];
