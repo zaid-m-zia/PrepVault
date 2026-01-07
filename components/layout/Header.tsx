@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import supabase from '../../lib/supabaseClient';
 
 // Header component (client-side for interactivity)
@@ -10,6 +10,7 @@ import supabase from '../../lib/supabaseClient';
 
 export default function Header(): JSX.Element {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -80,19 +81,54 @@ export default function Header(): JSX.Element {
         <nav aria-label="Main navigation">
           <ul className="hidden md:flex items-center gap-6 text-sm text-secondary-text">
             <li>
-              <Link href="/" className="hover:text-primary-text">Home</Link>
+              <Link
+                href="/"
+                aria-current={pathname === '/' ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/' ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Home</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/' ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
             </li>
             <li>
-              <Link href="/resources" className="hover:text-primary-text">Resources</Link>
+              <Link
+                href="/resources"
+                aria-current={pathname === '/resources' || pathname?.startsWith('/resources/') ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Resources</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
             </li>
             <li>
-              <Link href="/events" className="hover:text-primary-text">Events</Link>
+              <Link
+                href="/events"
+                aria-current={pathname === '/events' || pathname?.startsWith('/events/') ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/events' || pathname?.startsWith('/events/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Events</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/events' || pathname?.startsWith('/events/') ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
             </li>
             <li>
-              <Link href="/hackhub" className="hover:text-primary-text">HackHub</Link>
+              <Link
+                href="/hackhub"
+                aria-current={pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">HackHub</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
             </li>
             <li>
-              <Link href="/profile" className="hover:text-primary-text">Profile</Link>
+              <Link
+                href="/profile"
+                aria-current={pathname === '/profile' || pathname?.startsWith('/profile/') ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Profile</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
             </li>
 
             <li>
@@ -138,19 +174,64 @@ export default function Header(): JSX.Element {
             >
               <ul className="flex flex-col gap-3 text-sm">
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/" className="block px-2 py-2 rounded-md hover:bg-white/5">Home</Link>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/"
+                    aria-current={pathname === '/' ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/' ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Home</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/' ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
                 </li>
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/resources" className="block px-2 py-2 rounded-md hover:bg-white/5">Resources</Link>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/resources"
+                    aria-current={pathname === '/resources' || pathname?.startsWith('/resources/') ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Resources</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
                 </li>
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/events" className="block px-2 py-2 rounded-md hover:bg-white/5">Events</Link>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/events"
+                    aria-current={pathname === '/events' || pathname?.startsWith('/events/') ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/events' || pathname?.startsWith('/events/') ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Events</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/events' || pathname?.startsWith('/events/') ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
                 </li>
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/hackhub" className="block px-2 py-2 rounded-md hover:bg-white/5">HackHub</Link>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/hackhub"
+                    aria-current={pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">HackHub</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/hackhub' || pathname?.startsWith('/hackhub/') ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
                 </li>
                 <li>
-                  <Link role="menuitem" tabIndex={open ? 0 : -1} href="/profile" className="block px-2 py-2 rounded-md hover:bg-white/5">Profile</Link>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/profile"
+                    aria-current={pathname === '/profile' || pathname?.startsWith('/profile/') ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Profile</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
                 </li>
 
                 <li>

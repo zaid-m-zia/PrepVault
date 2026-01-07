@@ -31,21 +31,28 @@ import PlaylistTab from "./PlaylistTab";
       <div className="mt-8">
         {/* Tabs Header */}
         <div className="flex flex-wrap gap-3 border-b">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-md text-sm font-medium
-                ${
-                  activeTab === id
-                    ? "bg-primary text-white"
-                    : "text-gray-500 transition-colors transition-transform duration-150 hover:text-primary-text hover:scale-105 hover:z-10"
-                }`}
-            >
-              <Icon size={18} />
-              {label}
-            </button>
-          ))}
+          {tabs.map(({ id, label, icon: Icon }) => {
+            const isActive = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                aria-pressed={isActive}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+                  transition-all duration-200 focus:outline-none
+                  ${
+                    isActive
+                    ? "bg-primary text-white shadow-md ring-2 ring-primary/40"
+                    : "bg-transparent text-gray-400 opacity-70 hover:opacity-100 hover:text-primary"
+  }
+  `}
+
+              >
+                <Icon className={`${isActive ? 'text-white' : 'text-gray-400'} transition-colors duration-200`} size={18} />
+                <span className={`${isActive ? 'text-white' : 'text-gray-600'} transition-colors duration-200`}>{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tabs Content */}
