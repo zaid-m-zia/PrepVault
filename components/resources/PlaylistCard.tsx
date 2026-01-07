@@ -3,11 +3,11 @@
 
 export default function PlaylistCard({ playlist }: { playlist: { id: string; title: string; platform?: string; coverage?: string; examRelevance: string; url: string } }) {
   return (
-    <article className="rounded-lg p-4 border glass hover:shadow-lg transition-transform" style={{ borderColor: 'rgba(246,72,153,0.06)' }}>
+    <article className="group rounded-lg p-4 border glass transform-gpu transition-transform duration-150 hover:shadow-lg hover:scale-105 hover:-translate-y-1 z-0 hover:z-10" style={{ borderColor: 'rgba(246,72,153,0.06)' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h4 className="text-md font-semibold font-display leading-snug">{playlist.title}</h4>
+            <h4 className="text-md font-semibold font-display leading-snug transition-colors group-hover:text-primary-text">{playlist.title}</h4>
             <span className="text-xs px-2 py-0.5 rounded-md text-white" style={{ backgroundColor: '#FF0000' }}>{playlist.platform ?? 'YouTube'}</span>
           </div>
 

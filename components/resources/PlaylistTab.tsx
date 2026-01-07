@@ -1,10 +1,10 @@
 "use client";
 
-import { MOCK_RESOURCES } from '../../data/mock/resources';
 import PlaylistCard from './PlaylistCard';
+import type { Resource } from '../../data/mock/resources';
 
-export default function PlaylistTab() {
-  const items = MOCK_RESOURCES.filter((r) => r.type === 'Playlist');
+export default function PlaylistTab({ resources }: { resources: Resource[] }) {
+  const items = resources.filter((r) => r.type === 'Playlist');
 
   if (items.length === 0) {
     return <div className="text-sm text-secondary-text">No playlists found.</div>;
