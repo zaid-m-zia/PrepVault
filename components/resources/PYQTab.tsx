@@ -1,4 +1,12 @@
-export default function PYQTab() {
+"use client";
+
+import type { Resource } from '../../data/mock/resources';
+
+interface PYQTabProps {
+  resources: Resource[];
+}
+
+export default function PYQTab({ resources }: PYQTabProps) {
   return (
     <div className="space-y-6">
       <div>
