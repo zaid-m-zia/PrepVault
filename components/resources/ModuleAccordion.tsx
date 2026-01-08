@@ -15,7 +15,7 @@ export default function ModuleAccordion({ moduleName, resources, playlists }: { 
   const references = resources.filter((r) => r.type === 'Reference');
 
   return (
-    <div className="border-t border-white/4 pt-4">
+    <div className="first:border-t-0 border-t border-white/4 pt-4">
       <button aria-expanded={open} onClick={() => setOpen((s) => !s)} className="w-full flex items-center justify-between py-2">
         <div>
           <h2 className="text-lg font-display font-semibold">{moduleName}</h2>
