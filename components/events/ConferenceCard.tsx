@@ -1,4 +1,4 @@
-import type { Conference } from "@/data/mock/conferences";
+import type { Conference } from "../../data/mock/conferences";
 
 type Props = {
   conference: Conference;
