@@ -3,9 +3,12 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { events } from '../../data/mock/events';
 import EventCard from '../../components/events/EventCard';
+import { conferences } from '../../data/mock/conferences';
+import type { Conference } from '../../data/mock/conferences';
+import ConferenceCard from '../../components/events/ConferenceCard';
 
 const MODES = ['Online', 'Offline', 'Hybrid'] as const;
-const CATEGORIES = ['Hackathon', 'Tech Fest', 'Competition', 'Cultural Fest', 'Coding Challenge'] as const;
+const CATEGORIES = ['Hackathon', 'Tech Fest', 'Competition', 'Cultural Fest', 'Coding Challenge', 'Conference'] as const;
 const COLLEGES = ['Amity University', 'DTU', 'NSUT', 'IGDTUW', 'IPU', 'IIITD', 'Open to All'] as const;
 
 export default function EventsPage() {
@@ -69,7 +72,19 @@ export default function EventsPage() {
             </div>
           </div>
         </div>
+        {/* Conferences Section */}
+        <div className="mt-12 mb-16">
+          <header className="mb-4">
+            <h2 className="text-xl font-display font-semibold">Conferences</h2>
+            <p className="mt-1 text-sm text-secondary-text">Academic & research conferences</p>
+          </header>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {conferences.map((c: Conference) => (
+              <ConferenceCard key={c.id} conference={c} />
+            ))}
+          </div>
+        </div>
         {/* Uniform grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((e) => (
@@ -78,6 +93,8 @@ export default function EventsPage() {
         </div>
 
         {filtered.length === 0 && <div className="mt-6 text-sm text-secondary-text">No events match the selected filters.</div>}
+
+        
       </div>
     </section>
   );
