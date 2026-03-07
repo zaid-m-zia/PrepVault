@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import supabase from '../../lib/supabaseClient';
+import SearchBar from '../search/SearchBar';
 
 // Header component (client-side for interactivity)
 // Purpose: Reusable, responsive header aligned with PrepVault design system
@@ -77,6 +78,8 @@ export default function Header(): JSX.Element {
             <div className="font-display text-xl font-bold">PrepVault</div>
           </div>
         </div>
+
+        <SearchBar />
 
         <nav aria-label="Main navigation">
           <ul className="hidden md:flex items-center gap-6 text-sm text-secondary-text">
