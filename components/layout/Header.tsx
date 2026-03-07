@@ -137,6 +137,26 @@ export default function Header(): JSX.Element {
                 <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'scale-x-100' : 'scale-x-0'}`} />
               </Link>
             </li>
+            <li>
+              <Link
+                href="/chat"
+                aria-current={pathname === '/chat' ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/chat' ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Chat</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/chat' ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/notifications"
+                aria-current={pathname === '/notifications' ? 'page' : undefined}
+                className={`transition-colors duration-200 relative inline-block ${pathname === '/notifications' ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+              >
+                <span className="relative z-10">Notifications</span>
+                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/notifications' ? 'scale-x-100' : 'scale-x-0'}`} />
+              </Link>
+            </li>
 
             <li>
               {user ? (
@@ -238,6 +258,30 @@ export default function Header(): JSX.Element {
                   >
                     <span className="relative z-10">Profile</span>
                     <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/profile' || pathname?.startsWith('/profile/') ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/chat"
+                    aria-current={pathname === '/chat' ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/chat' ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Chat</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/chat' ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    href="/notifications"
+                    aria-current={pathname === '/notifications' ? 'page' : undefined}
+                    className={`block px-2 py-2 rounded-md transition-colors duration-150 ${pathname === '/notifications' ? 'text-primary-600' : 'text-gray-200 hover:text-white'} relative`}
+                  >
+                    <span className="relative z-10">Notifications</span>
+                    <span aria-hidden className={`absolute left-2 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/notifications' ? 'scale-x-100' : 'scale-x-0'}`} />
                   </Link>
                 </li>
 

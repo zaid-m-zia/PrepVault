@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import supabase from '../../lib/supabaseClient'
 import ConversationList from '../../components/chat/ConversationList'
 import ChatWindow from '../../components/chat/ChatWindow'
@@ -13,7 +14,8 @@ type Conversation = {
   lastMessageTime?: string
 }
 
-export default function ChatPage() {
+function ChatContent() {
+  const searchParams = useSearchParams()
   const [currentUser, setCurrentUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
@@ -30,6 +32,12 @@ export default function ChatPage() {
         }
         setCurrentUser(authData.user)
         await fetchConversations(authData.user.id)
+
+        // Check for user query parameter
+        const userParam = searchParams.get('user')
+        if (userParam) {
+          setSelectedUserId(userParam)
+        }
       } catch (err) {
         console.error('Error initializing chat:', err)
         setError('Failed to load chat')
@@ -39,7 +47,7 @@ export default function ChatPage() {
     }
 
     initialize()
-  }, [])
+  }, [searchParams])
 
   async function fetchConversations(userId: string) {
     try {
@@ -132,5 +140,17 @@ export default function ChatPage() {
         </div>
       )}
     </section>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <section className="h-[calc(100vh-120px)] flex items-center justify-center">
+        <div className="text-secondary-text">Loading chat...</div>
+      </section>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }

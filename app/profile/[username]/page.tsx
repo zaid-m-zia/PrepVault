@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import FollowButton from '../../../components/profile/FollowButton'
+import MessageButton from '../../../components/profile/MessageButton'
 
 export default async function UserProfilePage({ params }: { params: { username: string } }) {
   const cookieStore = cookies()
@@ -80,13 +81,16 @@ export default async function UserProfilePage({ params }: { params: { username: 
               </div>
             </div>
 
-            {/* Follow Button */}
+            {/* Action Buttons */}
             {!isOwnProfile && user?.user && (
-              <FollowButton
-                profileId={profile.id}
-                currentStatus={followStatus?.status}
-                isFollowed={followStatus?.status === 'accepted'}
-              />
+              <div className="flex gap-3">
+                <FollowButton
+                  profileId={profile.id}
+                  currentStatus={followStatus?.status}
+                  isFollowed={followStatus?.status === 'accepted'}
+                />
+                <MessageButton profileId={profile.id} username={profile.username} />
+              </div>
             )}
           </div>
         </div>

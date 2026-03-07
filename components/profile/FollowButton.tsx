@@ -79,7 +79,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
           : 'bg-accent text-[#0a0e27] hover:shadow-lg'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
-      {loading ? 'Loading...' : isFollowed ? 'Following' : status === 'pending' ? 'Pending' : 'Follow'}
+      {loading ? 'Loading...' : isFollowed ? 'Following' : status === 'pending' ? 'Requested' : 'Follow'}
     </motion.button>
   )
 }
