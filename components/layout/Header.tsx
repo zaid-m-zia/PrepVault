@@ -67,37 +67,41 @@ export default function Header(): JSX.Element {
   }
 
   return (
-    <header className="py-4 px-6">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg glass flex items-center justify-center">
-              {/* Placeholder mark */}
-              <span className="font-display font-bold text-lg">PV</span>
-            </div>
-            <div className="font-display text-xl font-bold">PrepVault</div>
-          </div>
+    <header className="flex items-center justify-between px-6 py-3">
+      {/* LEFT */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg glass flex items-center justify-center">
+          {/* Placeholder mark */}
+          <span className="font-display font-bold text-lg">PV</span>
         </div>
+        <div className="font-display text-xl font-bold">PrepVault</div>
+      </div>
 
-        <SearchBar />
+      {/* CENTER */}
+      <div className="flex-1 flex justify-center px-10">
+        <div className="w-full max-w-2xl">
+          <SearchBar />
+        </div>
+      </div>
 
-        <nav aria-label="Main navigation">
-          <ul className="hidden md:flex items-center gap-6 text-sm text-secondary-text">
-            <li>
-              <Link
-                href="/"
-                aria-current={pathname === '/' ? 'page' : undefined}
-                className={`transition-colors duration-200 relative inline-block ${pathname === '/' ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
-              >
-                <span className="relative z-10">Home</span>
-                <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/' ? 'scale-x-100' : 'scale-x-0'}`} />
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/resources"
-                aria-current={pathname === '/resources' || pathname?.startsWith('/resources/') ? 'page' : undefined}
-                className={`transition-colors duration-200 relative inline-block ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+      {/* RIGHT */}
+      <nav aria-label="Main navigation" className="flex items-center gap-6">
+        <ul className="hidden md:flex items-center gap-6 text-sm text-secondary-text">
+          <li>
+            <Link
+              href="/"
+              aria-current={pathname === '/' ? 'page' : undefined}
+              className={`transition-colors duration-200 relative inline-block ${pathname === '/' ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
+            >
+              <span className="relative z-10">Home</span>
+              <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/' ? 'scale-x-100' : 'scale-x-0'}`} />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/resources"
+              aria-current={pathname === '/resources' || pathname?.startsWith('/resources/') ? 'page' : undefined}
+              className={`transition-colors duration-200 relative inline-block ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`}
               >
                 <span className="relative z-10">Resources</span>
                 <span aria-hidden className={`absolute left-0 -bottom-0.5 h-[2px] bg-primary-600 origin-left transform transition-transform duration-200 ${pathname === '/resources' || pathname?.startsWith('/resources/') ? 'scale-x-100' : 'scale-x-0'}`} />
@@ -251,7 +255,6 @@ export default function Header(): JSX.Element {
             </div>
           </div>
         </nav>
-      </div>
     </header>
   );
 }
