@@ -42,17 +42,17 @@ export default function SearchBar() {
 
   return (
     <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2">
-      <div className="relative w-full max-w-xl" ref={containerRef}>
+      <div className="relative w-full" ref={containerRef}>
         <div className="relative">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setOpen(true)}
-            placeholder="Search..."
-            className="px-3 py-2 rounded-lg bg-transparent border border-white/6 text-sm w-48 focus:outline-none focus:border-white/20"
+            placeholder="Search engineers, resources, events, hackathons..."
+            className="w-full h-11 px-5 pr-10 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
           />
-          <Search size={16} className="absolute right-3 top-2.5 text-secondary-text pointer-events-none" />
+          <Search size={16} className="absolute right-3 top-3.5 text-secondary-text pointer-events-none" />
         </div>
 
         <AnimatePresence>
