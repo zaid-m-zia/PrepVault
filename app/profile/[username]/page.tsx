@@ -43,7 +43,7 @@ export default async function UserProfilePage({ params }: { params: { username: 
       .select('*')
       .eq('follower_id', user.user.id)
       .eq('following_id', profile.id)
-      .single()
+      .maybeSingle()
 
     followStatus = follow
   }
@@ -55,8 +55,8 @@ export default async function UserProfilePage({ params }: { params: { username: 
       <div className="max-w-2xl mx-auto">
         {/* Profile Header */}
         <div className="glass rounded-xl p-8 border border-white/10 mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-start gap-6">
+          <div className="flex items-start gap-6 mb-6">
+            <div className="flex items-start gap-6 flex-1">
               {/* Avatar */}
               <div className="w-24 h-24 rounded-lg glass border border-white/10 flex items-center justify-center text-2xl font-bold">
                 {profile.full_name
@@ -78,20 +78,20 @@ export default async function UserProfilePage({ params }: { params: { username: 
                     Joined {new Date(profile.created_at).toLocaleDateString()}
                   </p>
                 )}
+
+                {/* Action Buttons */}
+                {!isOwnProfile && user?.user && (
+                  <div className="flex gap-3 mt-4">
+                    <FollowButton
+                      profileId={profile.id}
+                      currentStatus={followStatus?.status}
+                      isFollowed={followStatus?.status === 'accepted'}
+                    />
+                    <MessageButton profileId={profile.id} username={profile.username} />
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Action Buttons */}
-            {!isOwnProfile && user?.user && (
-              <div className="flex gap-3">
-                <FollowButton
-                  profileId={profile.id}
-                  currentStatus={followStatus?.status}
-                  isFollowed={followStatus?.status === 'accepted'}
-                />
-                <MessageButton profileId={profile.id} username={profile.username} />
-              </div>
-            )}
           </div>
         </div>
 
