@@ -23,14 +23,16 @@ export default function NotificationsPage() {
   useEffect(() => {
     let mounted = true
     async function check() {
-      const { data }: any = await supabase.auth.getUser()
+      const { data } = await supabase.auth.getSession()
+      const session = data?.session
+
       if (!mounted) return
-      if (!data?.user) {
+      if (!session) {
         setLoading(false)
         return
       }
-      setUser(data.user)
-      await fetchNotifications(data.user.id)
+      setUser(session.user)
+      await fetchNotifications(session.user.id)
       setLoading(false)
     }
     check()

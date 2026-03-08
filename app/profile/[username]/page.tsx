@@ -25,8 +25,9 @@ export default function UserProfilePage({ params }: { params: { username: string
     async function fetchData() {
       try {
         // Get current user
-        const { data: userData } = await supabase.auth.getUser()
-        setUser(userData)
+        const { data } = await supabase.auth.getSession()
+        const session = data?.session
+        setUser(session?.user || null)
 
         // Fetch profile by username
         const { data: profileData, error } = await supabase
@@ -43,11 +44,11 @@ export default function UserProfilePage({ params }: { params: { username: string
         setProfile(profileData)
 
         // Check if current user is following this profile
-        if (userData?.user) {
+        if (session?.user) {
           const { data: follow } = await supabase
             .from('follows')
             .select('*')
-            .eq('follower_id', userData.user.id)
+            .eq('follower_id', session.user.id)
             .eq('following_id', profileData.id)
             .maybeSingle()
 
@@ -55,7 +56,7 @@ export default function UserProfilePage({ params }: { params: { username: string
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
-        router.push('/404')
+        setLoading(false)
       } finally {
         setLoading(false)
       }

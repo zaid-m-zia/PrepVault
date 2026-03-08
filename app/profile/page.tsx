@@ -16,19 +16,21 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true
     async function check() {
-      const { data }: any = await supabase.auth.getUser()
+      const { data } = await supabase.auth.getSession()
+      const session = data?.session
+
       if (!mounted) return
-      if (!data?.user) {
+      if (!session) {
         setLoading(false)
         return
       }
-      setUser(data.user)
+      setUser(session.user)
 
       // Fetch user profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('id', session.user.id)
         .single()
 
       if (profileData) {
@@ -76,6 +78,19 @@ export default function ProfilePage() {
             >
               Go to Login
             </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <section className="py-12 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="glass rounded-xl p-8 border border-white/10 text-center">
+            <h1 className="text-2xl font-display font-bold mb-4">Loading Profile...</h1>
+            <p className="text-secondary-text">Please wait while we load your profile data.</p>
           </div>
         </div>
       </section>

@@ -26,10 +26,11 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
     setError(null)
 
     try {
-      const { data: user } = await supabase.auth.getUser()
-      if (!user?.user) throw new Error('Not authenticated')
+      const { data } = await supabase.auth.getSession()
+      const session = data?.session
+      if (!session) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('profiles')
         .update({
           full_name: formData.full_name,
@@ -37,13 +38,13 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
           bio: formData.bio,
           avatar_url: formData.avatar_url
         })
-        .eq('id', user.user.id)
+        .eq('id', session.user.id)
         .select()
         .single()
 
       if (error) throw error
 
-      onSave(data)
+      onSave(updatedData)
     } catch (err: any) {
       setError(err.message || 'Failed to update profile')
     } finally {

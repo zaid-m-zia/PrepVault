@@ -25,8 +25,10 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
     setLoading(true)
 
     try {
-      const { data: user } = await supabase.auth.getUser()
-      if (!user?.user) {
+      const { data } = await supabase.auth.getSession()
+      const session = data?.session
+
+      if (!session) {
         // Instead of redirecting, show an alert or handle gracefully
         alert('Please log in to follow users')
         setLoading(false)
@@ -42,7 +44,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         const { error: unfollowError } = await supabase
           .from('follows')
           .delete()
-          .eq('follower_id', user.user.id)
+          .eq('follower_id', session.user.id)
           .eq('following_id', profileId)
 
         if (unfollowError) {
@@ -53,11 +55,11 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
 
         setStatus(undefined)
       } else {
-        console.log('Following user:', profileId, 'from user:', user.user.id)
+        console.log('Following user:', profileId, 'from user:', session.user.id)
         
         // Step 1: Insert into follows table
         const { error: followError } = await supabase.from('follows').insert({
-          follower_id: user.user.id,
+          follower_id: session.user.id,
           following_id: profileId,
           status: 'pending',
         })
@@ -72,7 +74,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         setStatus('pending')
 
         // Step 2: Create notification for the receiver (don't fail follow if notification fails)
-        const userName = user.user.user_metadata?.full_name || user.user.email || 'Someone'
+        const userName = session.user.user_metadata?.full_name || session.user.email || 'Someone'
         const { error: notificationError } = await supabase.from('notifications').insert({
           user_id: profileId,
           type: 'follow_request',

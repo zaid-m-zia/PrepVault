@@ -25,13 +25,15 @@ function ChatContent() {
   useEffect(() => {
     async function initialize() {
       try {
-        const { data: authData } = await supabase.auth.getUser()
-        if (!authData?.user) {
+        const { data } = await supabase.auth.getSession()
+        const session = data?.session
+
+        if (!session) {
           setLoading(false)
           return
         }
-        setCurrentUser(authData.user)
-        await fetchConversations(authData.user.id)
+        setCurrentUser(session.user)
+        await fetchConversations(session.user.id)
 
         // Check for user query parameter
         const userParam = searchParams.get('user')
