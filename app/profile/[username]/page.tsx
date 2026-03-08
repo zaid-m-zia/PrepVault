@@ -55,42 +55,40 @@ export default async function UserProfilePage({ params }: { params: { username: 
       <div className="max-w-2xl mx-auto">
         {/* Profile Header */}
         <div className="glass rounded-xl p-8 border border-white/10 mb-8">
-          <div className="flex items-start gap-6 mb-6">
-            <div className="flex items-start gap-6 flex-1">
-              {/* Avatar */}
-              <div className="w-24 h-24 rounded-lg glass border border-white/10 flex items-center justify-center text-2xl font-bold">
-                {profile.full_name
-                  ?.split(' ')
-                  .map((n: string) => n[0])
-                  .join('')
-                  .toUpperCase() || profile.username.charAt(0).toUpperCase()}
-              </div>
+          <div className="flex items-start gap-6">
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-lg glass border border-white/10 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+              {profile.full_name
+                ?.split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase() || profile.username.charAt(0).toUpperCase()}
+            </div>
 
-              {/* Profile Info */}
-              <div className="flex-1">
-                <h1 className="text-3xl font-display font-bold">{profile.full_name || profile.username}</h1>
-                <p className="text-lg text-secondary-text">@{profile.username}</p>
-                {profile.bio && (
-                  <p className="mt-3 text-secondary-text">{profile.bio}</p>
-                )}
-                {profile.created_at && (
-                  <p className="mt-2 text-xs text-secondary-text">
-                    Joined {new Date(profile.created_at).toLocaleDateString()}
-                  </p>
-                )}
+            {/* Profile Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-display font-bold">{profile.full_name || profile.username}</h1>
+              <p className="text-lg text-secondary-text">@{profile.username}</p>
+              {profile.bio && (
+                <p className="mt-3 text-secondary-text">{profile.bio}</p>
+              )}
+              {profile.created_at && (
+                <p className="mt-2 text-xs text-secondary-text">
+                  Joined {new Date(profile.created_at).toLocaleDateString()}
+                </p>
+              )}
 
-                {/* Action Buttons */}
-                {!isOwnProfile && user?.user && (
-                  <div className="flex gap-3 mt-4">
-                    <FollowButton
-                      profileId={profile.id}
-                      currentStatus={followStatus?.status}
-                      isFollowed={followStatus?.status === 'accepted'}
-                    />
-                    <MessageButton profileId={profile.id} username={profile.username} />
-                  </div>
-                )}
-              </div>
+              {/* Action Buttons */}
+              {!isOwnProfile && user?.user && (
+                <div className="flex gap-3 mt-4">
+                  <FollowButton
+                    profileId={profile.id}
+                    currentStatus={followStatus?.status}
+                    isFollowed={followStatus?.status === 'accepted'}
+                  />
+                  <MessageButton profileId={profile.id} username={profile.username} />
+                </div>
+              )}
             </div>
           </div>
         </div>
