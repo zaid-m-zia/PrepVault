@@ -74,6 +74,69 @@ export default function NotificationsPage() {
     }
   }
 
+  async function acceptFollowRequest(notificationId: string, senderId: string) {
+    try {
+      // Update the follow request to accepted
+      const { error: updateError } = await supabase
+        .from('follows')
+        .update({ status: 'accepted' })
+        .eq('follower_id', senderId)
+        .eq('following_id', user.id)
+
+      if (updateError) throw updateError
+
+      // Mark notification as read
+      await markAsRead(notificationId)
+
+      // Create a notification for the sender that their request was accepted
+      const { error: notificationError } = await supabase.from('notifications').insert({
+        user_id: senderId,
+        type: 'follow_accepted',
+        content: 'Your follow request was accepted',
+        is_read: false,
+      })
+
+      if (notificationError) {
+        console.error('Error creating acceptance notification:', notificationError)
+      }
+
+      // Remove this notification from the list
+      setNotifications(prev => prev.filter(n => n.id !== notificationId))
+    } catch (err) {
+      console.error('Error accepting follow request:', err)
+    }
+  }
+
+  async function rejectFollowRequest(notificationId: string, senderId: string) {
+    try {
+      // Delete the follow request
+      const { error: deleteError } = await supabase
+        .from('follows')
+        .delete()
+        .eq('follower_id', senderId)
+        .eq('following_id', user.id)
+
+      if (deleteError) throw deleteError
+
+      // Mark notification as read and remove from list
+      setNotifications(prev => prev.filter(n => n.id !== notificationId))
+    } catch (err) {
+      console.error('Error rejecting follow request:', err)
+    }
+  }
+
+  function parseFollowRequest(notification: Notification) {
+    if (notification.type === 'follow_request' && notification.content.startsWith('FOLLOW_REQUEST:')) {
+      const parts = notification.content.split(':')
+      if (parts.length >= 3) {
+        const senderId = parts[1]
+        const senderName = parts.slice(2).join(':')
+        return { senderId, senderName }
+      }
+    }
+    return null
+  }
+
   function formatNotificationContent(notification: Notification) {
     switch (notification.type) {
       case 'follow_request':
@@ -132,34 +195,62 @@ export default function NotificationsPage() {
               <p className="text-secondary-text">No notifications yet</p>
             </div>
           ) : (
-            notifications.map((notification, index) => (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`glass rounded-xl p-6 border transition-all cursor-pointer ${
-                  notification.is_read
-                    ? 'border-white/10 bg-white/5'
-                    : 'border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10'
-                }`}
-                onClick={() => !notification.is_read && markAsRead(notification.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-white'}`}>
-                      {formatNotificationContent(notification)}
-                    </p>
-                    <p className="text-xs text-secondary-text/70 mt-1">
-                      {new Date(notification.created_at).toLocaleString()}
-                    </p>
+            notifications.map((notification, index) => {
+              const followRequestData = parseFollowRequest(notification)
+              
+              return (
+                <motion.div
+                  key={notification.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`glass rounded-xl p-6 border transition-all ${
+                    notification.is_read
+                      ? 'border-white/10 bg-white/5'
+                      : 'border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10'
+                  } ${notification.type === 'follow_request' ? 'cursor-default' : 'cursor-pointer'}`}
+                  onClick={() => notification.type !== 'follow_request' && !notification.is_read && markAsRead(notification.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-white'}`}>
+                        {followRequestData ? `${followRequestData.senderName} sent you a follow request` : formatNotificationContent(notification)}
+                      </p>
+                      <p className="text-xs text-secondary-text/70 mt-1">
+                        {new Date(notification.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    
+                    {followRequestData && !notification.is_read && (
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            acceptFollowRequest(notification.id, followRequestData.senderId)
+                          }}
+                          className="px-4 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all text-sm"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            rejectFollowRequest(notification.id, followRequestData.senderId)
+                          }}
+                          className="px-4 py-2 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                    
+                    {!followRequestData && !notification.is_read && (
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full ml-4"></div>
+                    )}
                   </div>
-                  {!notification.is_read && (
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full ml-4"></div>
-                  )}
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              )
+            })
           )}
         </div>
       </div>

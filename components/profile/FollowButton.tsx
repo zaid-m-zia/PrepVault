@@ -78,7 +78,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         const { error: notificationError } = await supabase.from('notifications').insert({
           user_id: profileId,
           type: 'follow_request',
-          content: `${userName} sent you a follow request`,
+          content: `FOLLOW_REQUEST:${session.user.id}:${userName}`,
           is_read: false,
         })
 

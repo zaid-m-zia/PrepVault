@@ -56,7 +56,7 @@ export default function ChatWindow({
           setSelectedUser(userProfile)
         }
 
-        // Check if following
+        // Check follow status
         const { data: followData } = await supabase
           .from('follows')
           .select('status')
@@ -64,7 +64,7 @@ export default function ChatWindow({
           .eq('following_id', selectedUserId)
           .single()
 
-        setIsFollowing(!!followData)
+        setIsFollowing(followData?.status === 'accepted')
 
         // Fetch messages
         await fetchMessages()
@@ -110,7 +110,7 @@ export default function ChatWindow({
 
   async function handleSendMessage(content: string) {
     try {
-      // Check if user has reached 2-message limit
+      // Check if user has reached 2-message limit (only if not following)
       if (!isFollowing && messageCount >= 2) {
         setShowLimitPopup(true)
         return
