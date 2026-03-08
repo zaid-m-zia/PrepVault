@@ -12,6 +12,8 @@ export default function UserProfilePage({ params }: { params: { username: string
   const [profile, setProfile] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [followStatus, setFollowStatus] = useState<any>(null)
+  const [followerCount, setFollowerCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const router = useRouter()
@@ -54,6 +56,23 @@ export default function UserProfilePage({ params }: { params: { username: string
 
           setFollowStatus(follow)
         }
+
+        // Get follower count (people following this profile)
+        const { count: followers } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', profileData.id)
+          .eq('status', 'accepted')
+
+        // Get following count (people this profile is following)
+        const { count: following } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('follower_id', profileData.id)
+          .eq('status', 'accepted')
+
+        setFollowerCount(followers || 0)
+        setFollowingCount(following || 0)
       } catch (error) {
         console.error('Error fetching profile:', error)
         setLoading(false)
@@ -134,6 +153,19 @@ export default function UserProfilePage({ params }: { params: { username: string
               {profile.bio && (
                 <p className="mt-3 text-secondary-text">{profile.bio}</p>
               )}
+              
+              {/* Follower/Following Counts */}
+              <div className="flex gap-6 mt-3">
+                <div className="text-sm">
+                  <span className="font-semibold text-white">{followerCount}</span>
+                  <span className="text-secondary-text ml-1">Followers</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-semibold text-white">{followingCount}</span>
+                  <span className="text-secondary-text ml-1">Following</span>
+                </div>
+              </div>
+
               {profile.created_at && (
                 <p className="mt-2 text-xs text-secondary-text">
                   Joined {new Date(profile.created_at).toLocaleDateString()}
@@ -147,6 +179,27 @@ export default function UserProfilePage({ params }: { params: { username: string
                     profileId={profile.id}
                     currentStatus={followStatus?.status}
                     isFollowed={followStatus?.status === 'accepted'}
+                    onStatusChange={async (newStatus) => {
+                      setFollowStatus(newStatus ? { ...followStatus, status: newStatus } : null)
+                      
+                      // Refresh follower/following counts
+                      if (profile) {
+                        const { count: followers } = await supabase
+                          .from('follows')
+                          .select('*', { count: 'exact', head: true })
+                          .eq('following_id', profile.id)
+                          .eq('status', 'accepted')
+                        
+                        const { count: following } = await supabase
+                          .from('follows')
+                          .select('*', { count: 'exact', head: true })
+                          .eq('follower_id', profile.id)
+                          .eq('status', 'accepted')
+                        
+                        setFollowerCount(followers || 0)
+                        setFollowingCount(following || 0)
+                      }
+                    }}
                   />
                   <MessageButton profileId={profile.id} username={profile.username} />
                 </div>

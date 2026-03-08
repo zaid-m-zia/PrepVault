@@ -13,7 +13,7 @@ type Message = {
   recipient_id: string
   content: string
   created_at: string
-  read: boolean
+  is_read: boolean
 }
 
 type ChatUser = {
@@ -72,7 +72,7 @@ export default function ChatWindow({
         // Mark messages as read
         await supabase
           .from('messages')
-          .update({ read: true })
+          .update({ is_read: true })
           .eq('recipient_id', currentUserId)
           .eq('sender_id', selectedUserId)
       } catch (err) {
@@ -121,7 +121,7 @@ export default function ChatWindow({
         sender_id: currentUserId,
         recipient_id: selectedUserId,
         content,
-        read: false,
+        is_read: false,
       })
 
       if (error) throw error

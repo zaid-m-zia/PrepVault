@@ -9,9 +9,10 @@ type FollowButtonProps = {
   profileId: string
   currentStatus?: string
   isFollowed: boolean
+  onStatusChange?: (newStatus?: string) => void
 }
 
-export default function FollowButton({ profileId, currentStatus, isFollowed }: FollowButtonProps) {
+export default function FollowButton({ profileId, currentStatus, isFollowed, onStatusChange }: FollowButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | undefined>(currentStatus)
@@ -35,10 +36,18 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         return
       }
 
-      // Check if already following or pending
-      const isAlreadyFollowing = isFollowed || status === 'pending' || currentStatus === 'pending' || currentStatus === 'accepted'
+      // First, check current follow status from database to prevent race conditions
+      const { data: currentFollow } = await supabase
+        .from('follows')
+        .select('status')
+        .eq('follower_id', session.user.id)
+        .eq('following_id', profileId)
+        .maybeSingle()
+
+      const isCurrentlyFollowing = currentFollow?.status === 'accepted'
+      const isPending = currentFollow?.status === 'pending'
       
-      if (isAlreadyFollowing) {
+      if (isCurrentlyFollowing || isPending) {
         console.log('Unfollowing user:', profileId)
         // Unfollow
         const { error: unfollowError } = await supabase
@@ -54,6 +63,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         }
 
         setStatus(undefined)
+        onStatusChange?.(undefined)
       } else {
         console.log('Following user:', profileId, 'from user:', session.user.id)
         
@@ -72,6 +82,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
 
         console.log('Follow request inserted successfully')
         setStatus('pending')
+        onStatusChange?.('pending')
 
         // Step 2: Create notification for the receiver (don't fail follow if notification fails)
         const userName = session.user.user_metadata?.full_name || session.user.email || 'Someone'
