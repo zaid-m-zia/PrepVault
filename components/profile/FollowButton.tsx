@@ -35,37 +35,54 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
       const isAlreadyFollowing = isFollowed || status === 'pending' || currentStatus === 'pending' || currentStatus === 'accepted'
       
       if (isAlreadyFollowing) {
+        console.log('Unfollowing user:', profileId)
         // Unfollow
-        await supabase
+        const { error: unfollowError } = await supabase
           .from('follows')
           .delete()
           .eq('follower_id', user.user.id)
           .eq('following_id', profileId)
 
+        if (unfollowError) {
+          console.error('Unfollow error:', unfollowError)
+          setLoading(false)
+          return
+        }
+
         setStatus(undefined)
       } else {
-        // Follow
-        const { error } = await supabase.from('follows').insert({
+        console.log('Following user:', profileId, 'from user:', user.user.id)
+        
+        // Step 1: Insert into follows table
+        const { error: followError } = await supabase.from('follows').insert({
           follower_id: user.user.id,
           following_id: profileId,
           status: 'pending',
         })
 
-        if (error) {
-          console.error('Follow error:', error)
+        if (followError) {
+          console.error('Follow insert error:', followError)
           setLoading(false)
           return
         }
 
+        console.log('Follow request inserted successfully')
         setStatus('pending')
 
-        // Create notification for the receiver
-        await supabase.from('notifications').insert({
+        // Step 2: Create notification for the receiver (don't fail follow if notification fails)
+        const { error: notificationError } = await supabase.from('notifications').insert({
           user_id: profileId,
           actor_id: user.user.id,
           type: 'follow_request',
-          related_id: user.user.id,
+          is_read: false,
         })
+
+        if (notificationError) {
+          console.error('Notification insert error:', notificationError)
+          // Don't fail the follow request if notification fails
+        } else {
+          console.log('Notification created successfully')
+        }
       }
     } catch (e) {
       console.error('Error:', e)
