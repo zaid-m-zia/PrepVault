@@ -105,7 +105,7 @@ export default function UserProfilePage({ params }: { params: { username: string
     )
   }
 
-  const isOwnProfile = user?.user?.id === profile.id
+  const isOwnProfile = user?.id === profile.id
 
   const handleProfileUpdate = (updatedProfile: any) => {
     setProfile(updatedProfile)
@@ -141,7 +141,7 @@ export default function UserProfilePage({ params }: { params: { username: string
               )}
 
               {/* Action Buttons */}
-              {!isOwnProfile && user?.user && (
+              {!isOwnProfile && user && (
                 <div className="flex gap-3 mt-4">
                   <FollowButton
                     profileId={profile.id}
