@@ -10,10 +10,8 @@ type Notification = {
   user_id: string
   type: string
   content: string
-  read: boolean
+  is_read: boolean
   created_at: string
-  actor_id?: string
-  related_id?: string
 }
 
 export default function NotificationsPage() {
@@ -60,14 +58,14 @@ export default function NotificationsPage() {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('id', notificationId)
 
       if (error) throw error
 
       // Update local state
       setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       )
     } catch (err) {
       console.error('Error marking notification as read:', err)
@@ -107,22 +105,22 @@ export default function NotificationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className={`glass rounded-xl p-6 border transition-all cursor-pointer ${
-                  notification.read
+                  notification.is_read
                     ? 'border-white/10 bg-white/5'
                     : 'border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10'
                 }`}
-                onClick={() => !notification.read && markAsRead(notification.id)}
+                onClick={() => !notification.is_read && markAsRead(notification.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className={`text-sm ${notification.read ? 'text-secondary-text' : 'text-white'}`}>
+                    <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-white'}`}>
                       {formatNotificationContent(notification)}
                     </p>
                     <p className="text-xs text-secondary-text/70 mt-1">
                       {new Date(notification.created_at).toLocaleString()}
                     </p>
                   </div>
-                  {!notification.read && (
+                  {!notification.is_read && (
                     <div className="w-2 h-2 bg-cyan-400 rounded-full ml-4"></div>
                   )}
                 </div>

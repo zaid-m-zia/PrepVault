@@ -70,10 +70,11 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
         setStatus('pending')
 
         // Step 2: Create notification for the receiver (don't fail follow if notification fails)
+        const userName = user.user.user_metadata?.full_name || user.user.email || 'Someone'
         const { error: notificationError } = await supabase.from('notifications').insert({
           user_id: profileId,
-          actor_id: user.user.id,
           type: 'follow_request',
+          content: `${userName} sent you a follow request`,
           is_read: false,
         })
 
