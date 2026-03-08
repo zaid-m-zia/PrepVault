@@ -27,7 +27,7 @@ function ChatContent() {
       try {
         const { data: authData } = await supabase.auth.getUser()
         if (!authData?.user) {
-          window.location.href = '/login'
+          setLoading(false)
           return
         }
         setCurrentUser(authData.user)
@@ -110,6 +110,23 @@ function ChatContent() {
     return (
       <section className="h-[calc(100vh-120px)] flex items-center justify-center">
         <div className="text-red-400">{error}</div>
+      </section>
+    )
+  }
+
+  if (!currentUser) {
+    return (
+      <section className="h-[calc(100vh-120px)] flex items-center justify-center">
+        <div className="glass rounded-xl p-8 border border-white/10 text-center max-w-md mx-4">
+          <h1 className="text-2xl font-display font-bold mb-4">Please Log In</h1>
+          <p className="text-secondary-text mb-6">You need to be logged in to access chat.</p>
+          <button
+            onClick={() => window.location.href = '/login'}
+            className="px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+          >
+            Go to Login
+          </button>
+        </div>
       </section>
     )
   }

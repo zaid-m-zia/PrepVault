@@ -27,7 +27,9 @@ export default function FollowButton({ profileId, currentStatus, isFollowed }: F
     try {
       const { data: user } = await supabase.auth.getUser()
       if (!user?.user) {
-        router.push('/login')
+        // Instead of redirecting, show an alert or handle gracefully
+        alert('Please log in to follow users')
+        setLoading(false)
         return
       }
 

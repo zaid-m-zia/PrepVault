@@ -36,7 +36,7 @@ export default function UserProfilePage({ params }: { params: { username: string
           .single()
 
         if (error || !profileData) {
-          router.push('/404')
+          setLoading(false)
           return
         }
 
@@ -86,7 +86,22 @@ export default function UserProfilePage({ params }: { params: { username: string
   }
 
   if (!profile) {
-    return null
+    return (
+      <section className="py-12 px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="glass rounded-xl p-8 border border-white/10 text-center">
+            <h1 className="text-2xl font-display font-bold mb-4">Profile Not Found</h1>
+            <p className="text-secondary-text mb-6">The user you're looking for doesn't exist.</p>
+            <button
+              onClick={() => router.push('/')}
+              className="px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   const isOwnProfile = user?.user?.id === profile.id

@@ -19,7 +19,7 @@ export default function ProfilePage() {
       const { data }: any = await supabase.auth.getUser()
       if (!mounted) return
       if (!data?.user) {
-        router.push('/login')
+        setLoading(false)
         return
       }
       setUser(data.user)
@@ -39,16 +39,48 @@ export default function ProfilePage() {
     check()
     const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (session?.user) setUser(session.user)
-      else router.push('/login')
+      else setUser(null)
     })
     const subscription = data?.subscription
     return () => {
       mounted = false
       subscription?.unsubscribe()
     }
-  }, [router])
+  }, [])
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <section className="py-12 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="glass rounded-xl p-8 border border-white/10">
+            <div className="animate-pulse">
+              <div className="h-8 bg-white/10 rounded mb-4"></div>
+              <div className="h-4 bg-white/10 rounded w-3/4"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (!user) {
+    return (
+      <section className="py-12 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="glass rounded-xl p-8 border border-white/10 text-center">
+            <h1 className="text-2xl font-display font-bold mb-4">Please Log In</h1>
+            <p className="text-secondary-text mb-6">You need to be logged in to view your profile.</p>
+            <button
+              onClick={() => router.push('/login')}
+              className="px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="py-12 px-6">
