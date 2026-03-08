@@ -1,54 +1,100 @@
-import { createServerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import FollowButton from '../../../components/profile/FollowButton'
 import MessageButton from '../../../components/profile/MessageButton'
+import EditProfileForm from '../../../components/profile/EditProfileForm'
+import { motion } from 'framer-motion'
 
-export default async function UserProfilePage({ params }: { params: { username: string } }) {
-  const cookieStore = cookies()
-  const cookieMethods: any = {
-    get: (name: string) => {
-      const c = cookieStore.get(name)
-      if (!c) return undefined
-      return { name: c.name, value: c.value }
-    },
-    set: (cookie: any) => cookieStore.set(cookie),
-    delete: (name: string) => cookieStore.delete(name),
-  }
+export default function UserProfilePage({ params }: { params: { username: string } }) {
+  const [profile, setProfile] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
+  const [followStatus, setFollowStatus] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const router = useRouter()
 
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
-    { cookies: cookieMethods }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
   )
 
-  const { data: user } = await supabase.auth.getUser()
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Get current user
+        const { data: userData } = await supabase.auth.getUser()
+        setUser(userData)
 
-  // Fetch profile by username
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('username', params.username)
-    .single()
+        // Fetch profile by username
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('username', params.username)
+          .single()
 
-  if (error || !profile) {
-    notFound()
+        if (error || !profileData) {
+          router.push('/404')
+          return
+        }
+
+        setProfile(profileData)
+
+        // Check if current user is following this profile
+        if (userData?.user) {
+          const { data: follow } = await supabase
+            .from('follows')
+            .select('*')
+            .eq('follower_id', userData.user.id)
+            .eq('following_id', profileData.id)
+            .maybeSingle()
+
+          setFollowStatus(follow)
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+        router.push('/404')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [params.username, supabase, router])
+
+  if (loading) {
+    return (
+      <section className="py-12 px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="glass rounded-xl p-8 border border-white/10">
+            <div className="animate-pulse">
+              <div className="flex items-start gap-6">
+                <div className="w-24 h-24 bg-white/10 rounded-lg"></div>
+                <div className="flex-1">
+                  <div className="h-8 bg-white/10 rounded mb-2"></div>
+                  <div className="h-4 bg-white/10 rounded mb-4"></div>
+                  <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
   }
 
-  // Check if current user is following this profile
-  let followStatus = null
-  if (user?.user) {
-    const { data: follow } = await supabase
-      .from('follows')
-      .select('*')
-      .eq('follower_id', user.user.id)
-      .eq('following_id', profile.id)
-      .maybeSingle()
-
-    followStatus = follow
+  if (!profile) {
+    return null
   }
 
   const isOwnProfile = user?.user?.id === profile.id
+
+  const handleProfileUpdate = (updatedProfile: any) => {
+    setProfile(updatedProfile)
+    setEditing(false)
+  }
 
   return (
     <section className="py-12 px-6">
@@ -87,6 +133,29 @@ export default async function UserProfilePage({ params }: { params: { username: 
                     isFollowed={followStatus?.status === 'accepted'}
                   />
                   <MessageButton profileId={profile.id} username={profile.username} />
+                </div>
+              )}
+
+              {/* Edit Profile Button for own profile */}
+              {isOwnProfile && !editing && (
+                <motion.button
+                  onClick={() => setEditing(true)}
+                  className="mt-4 px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Edit Profile
+                </motion.button>
+              )}
+
+              {/* Edit Profile Form */}
+              {isOwnProfile && editing && (
+                <div className="mt-6">
+                  <EditProfileForm
+                    profile={profile}
+                    onSave={handleProfileUpdate}
+                    onCancel={() => setEditing(false)}
+                  />
                 </div>
               )}
             </div>
