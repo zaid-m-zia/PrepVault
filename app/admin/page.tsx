@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
-import { GraduationCap, Calendar, BookOpen, FileText, Upload } from 'lucide-react'
+import { GraduationCap, Calendar, BookOpen, FileText, Upload, UploadCloud } from 'lucide-react'
 
 interface Branch {
   id: string
@@ -102,6 +102,7 @@ export default function AdminPage() {
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
     { id: 'modules', label: 'Modules', icon: FileText },
     { id: 'resources', label: 'Resources', icon: Upload },
+    { id: 'bulk-upload', label: 'Bulk Upload', icon: UploadCloud },
   ]
 
   return (
@@ -142,6 +143,7 @@ export default function AdminPage() {
           {activeTab === 'subjects' && <SubjectManager />}
           {activeTab === 'modules' && <ModuleManager />}
           {activeTab === 'resources' && <ResourceManager />}
+          {activeTab === 'bulk-upload' && <BulkUploadManager />}
         </div>
       </div>
     </section>
@@ -1226,6 +1228,385 @@ function ResourceManager() {
             )}
           </button>
         </form>
+      </div>
+    </motion.div>
+  )
+}
+
+function BulkUploadManager() {
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [modules, setModules] = useState<Module[]>([])
+  const [selectedBranch, setSelectedBranch] = useState('')
+  const [selectedSemester, setSelectedSemester] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedModule, setSelectedModule] = useState('')
+  const [resourceType, setResourceType] = useState('')
+  const [files, setFiles] = useState<FileList | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState('')
+  const [message, setMessage] = useState('')
+  const [errors, setErrors] = useState<string[]>([])
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+  )
+
+  useEffect(() => {
+    fetchBranches()
+  }, [])
+
+  useEffect(() => {
+    if (selectedBranch) {
+      fetchSemesters()
+    }
+  }, [selectedBranch])
+
+  useEffect(() => {
+    if (selectedSemester) {
+      fetchSubjects()
+    }
+  }, [selectedSemester])
+
+  useEffect(() => {
+    if (selectedSubject) {
+      fetchModules()
+    }
+  }, [selectedSubject])
+
+  const fetchBranches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('branches')
+        .select('*')
+        .order('name')
+
+      if (error) throw error
+      setBranches(data || [])
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    }
+  }
+
+  const fetchSemesters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('semesters')
+        .select('*')
+        .eq('branch_id', selectedBranch)
+        .order('semester_number')
+
+      if (error) throw error
+      setSemesters(data || [])
+    } catch (error) {
+      console.error('Error fetching semesters:', error)
+    }
+  }
+
+  const fetchSubjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('semester_id', selectedSemester)
+        .order('name')
+
+      if (error) throw error
+      setSubjects(data || [])
+    } catch (error) {
+      console.error('Error fetching subjects:', error)
+    }
+  }
+
+  const fetchModules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('modules')
+        .select('*')
+        .eq('subject_id', selectedSubject)
+        .order('module_number')
+
+      if (error) throw error
+      setModules(data || [])
+    } catch (error) {
+      console.error('Error fetching modules:', error)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedModule || !files || !resourceType) return
+
+    setUploading(true)
+    setProgress('')
+    setMessage('')
+    setErrors([])
+
+    const { data: session } = await supabase.auth.getSession()
+    if (!session?.session?.user) {
+      setMessage('Not authenticated')
+      setUploading(false)
+      return
+    }
+
+    const totalFiles = files.length
+    let successCount = 0
+    let errorMessages: string[] = []
+
+    for (let i = 0; i < totalFiles; i++) {
+      const file = files[i]
+      setProgress(`Uploading ${i + 1}/${totalFiles}: ${file.name}`)
+
+      try {
+        // Generate file path
+        const branchName = branches.find(b => b.id === selectedBranch)?.name || 'Unknown'
+        const semester = semesters.find(s => s.id === selectedSemester)?.semester_number || '0'
+        const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'Unknown'
+        const module = modules.find(m => m.id === selectedModule)?.module_number || '0'
+        const timestamp = Date.now()
+        const fileName = `${timestamp}-${file.name}`
+
+        const filePath = `resources/${branchName}/${semester}/${subjectName}/${module}/${fileName}`
+
+        // Upload file to Supabase storage
+        const { error: uploadError } = await supabase.storage
+          .from('resources')
+          .upload(filePath, file)
+
+        if (uploadError) throw uploadError
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('resources')
+          .getPublicUrl(filePath)
+
+        // Generate title from filename (remove extension)
+        const title = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ')
+
+        // Insert database record
+        const { error: insertError } = await supabase
+          .from('resources')
+          .insert({
+            module_id: selectedModule,
+            title: title,
+            description: `${resourceType} for ${subjectName} - Module ${module}`,
+            resource_type: resourceType,
+            file_url: publicUrl,
+            youtube_link: null,
+            created_by: session.session.user.id
+          })
+
+        if (insertError) throw insertError
+
+        successCount++
+
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error)
+        errorMessages.push(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+    }
+
+    setProgress('')
+    setUploading(false)
+
+    if (successCount === totalFiles) {
+      setMessage(`Bulk upload successful! ${successCount} files uploaded.`)
+      setFiles(null)
+      // Reset form
+      setSelectedBranch('')
+      setSelectedSemester('')
+      setSelectedSubject('')
+      setSelectedModule('')
+      setResourceType('')
+    } else {
+      setMessage(`Upload completed with issues. ${successCount}/${totalFiles} files uploaded successfully.`)
+      setErrors(errorMessages)
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(e.target.files)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      {/* Bulk Upload Form */}
+      <div className="glass rounded-xl p-6 border border-white/10">
+        <h3 className="text-xl font-display font-bold mb-4">Bulk Upload Resources</h3>
+
+        {message && (
+          <div className={`mb-4 p-4 rounded-lg ${message.includes('successful') && !message.includes('issues') ? 'bg-green-500/20 border border-green-500/30' : 'bg-yellow-500/20 border border-yellow-500/30'}`}>
+            <p className="text-sm">{message}</p>
+          </div>
+        )}
+
+        {progress && (
+          <div className="mb-4 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <p className="text-sm">{progress}</p>
+          </div>
+        )}
+
+        {errors.length > 0 && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <h4 className="font-semibold mb-2">Upload Errors:</h4>
+            <ul className="text-sm space-y-1">
+              {errors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Hierarchical selectors */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Branch</label>
+              <select
+                value={selectedBranch}
+                onChange={(e) => {
+                  setSelectedBranch(e.target.value)
+                  setSelectedSemester('')
+                  setSelectedSubject('')
+                  setSelectedModule('')
+                }}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text"
+                required
+              >
+                <option value="">Select Branch</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>{branch.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Semester</label>
+              <select
+                value={selectedSemester}
+                onChange={(e) => {
+                  setSelectedSemester(e.target.value)
+                  setSelectedSubject('')
+                  setSelectedModule('')
+                }}
+                disabled={!selectedBranch}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
+                required
+              >
+                <option value="">Select Semester</option>
+                {semesters.map((semester) => (
+                  <option key={semester.id} value={semester.id}>Semester {semester.semester_number}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Subject</label>
+              <select
+                value={selectedSubject}
+                onChange={(e) => {
+                  setSelectedSubject(e.target.value)
+                  setSelectedModule('')
+                }}
+                disabled={!selectedSemester}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
+                required
+              >
+                <option value="">Select Subject</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>{subject.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Module</label>
+              <select
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+                disabled={!selectedSubject}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
+                required
+              >
+                <option value="">Select Module</option>
+                {modules.map((module) => (
+                  <option key={module.id} value={module.id}>Module {module.module_number}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Resource Type and File Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">Resource Type</label>
+              <select
+                value={resourceType}
+                onChange={(e) => setResourceType(e.target.value)}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text"
+                required
+              >
+                <option value="">Select type</option>
+                <option value="Notes">Notes</option>
+                <option value="PYQ">PYQ</option>
+                <option value="Assignment">Assignment</option>
+                <option value="PPT">PPT</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">PDF Files (Multiple)</label>
+              <input
+                type="file"
+                multiple
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                required
+              />
+              {files && (
+                <p className="text-sm text-secondary-text mt-2">
+                  {files.length} file{files.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={uploading || !selectedModule || !files || !resourceType}
+            className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          >
+            {uploading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Uploading...
+              </>
+            ) : (
+              `Upload ${files ? files.length : 0} Files`
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Upload Information */}
+      <div className="glass rounded-xl p-6 border border-white/10">
+        <h3 className="text-xl font-display font-bold mb-4">Upload Information</h3>
+        <div className="space-y-3 text-sm text-secondary-text">
+          <p><strong>File Path Format:</strong> resources/{'{Branch}'}/{'{Semester}'}/{'{Subject}'}/{'{Module}'}/{'{timestamp-filename}'}</p>
+          <p><strong>Example:</strong> resources/IT/4/DBMS/1/1712345678-dbms-pyq.pdf</p>
+          <p><strong>Title Generation:</strong> Automatically created from filename (removes .pdf extension)</p>
+          <p><strong>Description:</strong> Auto-generated as "{resourceType} for {'{Subject}'} - Module {'{Module}'}"</p>
+          <p><strong>Error Handling:</strong> Failed uploads are skipped, successful ones continue</p>
+        </div>
       </div>
     </motion.div>
   )
