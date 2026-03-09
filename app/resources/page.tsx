@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
 import { Download, Play } from 'lucide-react'
@@ -25,7 +25,7 @@ interface Subject {
 interface Module {
   id: string
   subject_id: string
-  module_number: number
+  module_name: string
 }
 
 interface Resource {
@@ -39,6 +39,12 @@ interface Resource {
   created_at: string
 }
 
+// Create Supabase client outside component to prevent recreation
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+)
+
 export default function ResourcesPage() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
@@ -46,21 +52,22 @@ export default function ResourcesPage() {
   const [modules, setModules] = useState<Module[]>([])
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingSemesters, setLoadingSemesters] = useState(false)
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
+  const [loadingModules, setLoadingModules] = useState(false)
+  const [loadingResources, setLoadingResources] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [selectedBranch, setSelectedBranch] = useState<string>('')
   const [selectedSemester, setSelectedSemester] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [selectedModule, setSelectedModule] = useState<string>('')
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
-
   // Load branches on mount
   useEffect(() => {
     async function fetchBranches() {
       try {
+        setError(null)
         const { data, error } = await supabase
           .from('branches')
           .select('*')
@@ -70,13 +77,14 @@ export default function ResourcesPage() {
         setBranches(data || [])
       } catch (error) {
         console.error('Error fetching branches:', error)
+        setError('Failed to load branches')
       } finally {
         setLoading(false)
       }
     }
 
     fetchBranches()
-  }, [supabase])
+  }, [])
 
   // Load semesters when branch is selected
   useEffect(() => {
@@ -88,6 +96,8 @@ export default function ResourcesPage() {
 
     async function fetchSemesters() {
       try {
+        setLoadingSemesters(true)
+        setError(null)
         const { data, error } = await supabase
           .from('semesters')
           .select('*')
@@ -98,11 +108,15 @@ export default function ResourcesPage() {
         setSemesters(data || [])
       } catch (error) {
         console.error('Error fetching semesters:', error)
+        setError('Failed to load semesters')
+        setSemesters([])
+      } finally {
+        setLoadingSemesters(false)
       }
     }
 
     fetchSemesters()
-  }, [selectedBranch, supabase])
+  }, [selectedBranch])
 
   // Load subjects when semester is selected
   useEffect(() => {
@@ -114,6 +128,8 @@ export default function ResourcesPage() {
 
     async function fetchSubjects() {
       try {
+        setLoadingSubjects(true)
+        setError(null)
         const { data, error } = await supabase
           .from('subjects')
           .select('*')
@@ -124,11 +140,15 @@ export default function ResourcesPage() {
         setSubjects(data || [])
       } catch (error) {
         console.error('Error fetching subjects:', error)
+        setError('Failed to load subjects')
+        setSubjects([])
+      } finally {
+        setLoadingSubjects(false)
       }
     }
 
     fetchSubjects()
-  }, [selectedSemester, supabase])
+  }, [selectedSemester])
 
   // Load modules when subject is selected
   useEffect(() => {
@@ -140,21 +160,27 @@ export default function ResourcesPage() {
 
     async function fetchModules() {
       try {
+        setLoadingModules(true)
+        setError(null)
         const { data, error } = await supabase
           .from('modules')
           .select('*')
           .eq('subject_id', selectedSubject)
-          .order('module_number')
+          .order('module_name')
 
         if (error) throw error
         setModules(data || [])
       } catch (error) {
         console.error('Error fetching modules:', error)
+        setError('Failed to load modules')
+        setModules([])
+      } finally {
+        setLoadingModules(false)
       }
     }
 
     fetchModules()
-  }, [selectedSubject, supabase])
+  }, [selectedSubject])
 
   // Load resources when module is selected
   useEffect(() => {
@@ -165,6 +191,8 @@ export default function ResourcesPage() {
 
     async function fetchResources() {
       try {
+        setLoadingResources(true)
+        setError(null)
         const { data, error } = await supabase
           .from('resources')
           .select('*')
@@ -175,33 +203,41 @@ export default function ResourcesPage() {
         setResources(data || [])
       } catch (error) {
         console.error('Error fetching resources:', error)
+        setError('Failed to load resources')
+        setResources([])
+      } finally {
+        setLoadingResources(false)
       }
     }
 
     fetchResources()
-  }, [selectedModule, supabase])
+  }, [selectedModule])
 
-  const handleBranchChange = (branchId: string) => {
+  const handleBranchChange = useCallback((branchId: string) => {
     setSelectedBranch(branchId)
     setSelectedSemester('')
     setSelectedSubject('')
     setSelectedModule('')
-  }
+    setError(null)
+  }, [])
 
-  const handleSemesterChange = (semesterId: string) => {
+  const handleSemesterChange = useCallback((semesterId: string) => {
     setSelectedSemester(semesterId)
     setSelectedSubject('')
     setSelectedModule('')
-  }
+    setError(null)
+  }, [])
 
-  const handleSubjectChange = (subjectId: string) => {
+  const handleSubjectChange = useCallback((subjectId: string) => {
     setSelectedSubject(subjectId)
     setSelectedModule('')
-  }
+    setError(null)
+  }, [])
 
-  const handleModuleChange = (moduleId: string) => {
+  const handleModuleChange = useCallback((moduleId: string) => {
     setSelectedModule(moduleId)
-  }
+    setError(null)
+  }, [])
 
   if (loading) {
     return (
@@ -239,6 +275,12 @@ export default function ResourcesPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
+          {error && (
+            <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Branch */}
             <div>
@@ -261,10 +303,12 @@ export default function ResourcesPage() {
               <select
                 value={selectedSemester}
                 onChange={(e) => handleSemesterChange(e.target.value)}
-                disabled={!selectedBranch}
+                disabled={!selectedBranch || loadingSemesters}
                 className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
               >
-                <option value="">Select Semester</option>
+                <option value="">
+                  {loadingSemesters ? 'Loading...' : 'Select Semester'}
+                </option>
                 {semesters.map((semester) => (
                   <option key={semester.id} value={semester.id}>Semester {semester.semester_number}</option>
                 ))}
@@ -277,10 +321,12 @@ export default function ResourcesPage() {
               <select
                 value={selectedSubject}
                 onChange={(e) => handleSubjectChange(e.target.value)}
-                disabled={!selectedSemester}
+                disabled={!selectedSemester || loadingSubjects}
                 className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
               >
-                <option value="">Select Subject</option>
+                <option value="">
+                  {loadingSubjects ? 'Loading...' : 'Select Subject'}
+                </option>
                 {subjects.map((subject) => (
                   <option key={subject.id} value={subject.id}>{subject.name}</option>
                 ))}
@@ -293,12 +339,14 @@ export default function ResourcesPage() {
               <select
                 value={selectedModule}
                 onChange={(e) => handleModuleChange(e.target.value)}
-                disabled={!selectedSubject}
+                disabled={!selectedSubject || loadingModules}
                 className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text disabled:opacity-50"
               >
-                <option value="">Select Module</option>
+                <option value="">
+                  {loadingModules ? 'Loading...' : 'Select Module'}
+                </option>
                 {modules.map((module) => (
-                  <option key={module.id} value={module.id}>Module {module.module_number}</option>
+                  <option key={module.id} value={module.id}>{module.module_name}</option>
                 ))}
               </select>
             </div>
@@ -312,13 +360,27 @@ export default function ResourcesPage() {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {resources.map((resource) => (
-              <ResourceCard key={resource.id} resource={resource} />
-            ))}
+            {loadingResources ? (
+              // Loading skeleton
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="glass rounded-xl p-6 border border-white/10">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                    <div className="h-6 bg-white/10 rounded w-3/4"></div>
+                    <div className="h-4 bg-white/10 rounded w-full"></div>
+                    <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              resources.map((resource) => (
+                <ResourceCard key={resource.id} resource={resource} />
+              ))
+            )}
           </motion.div>
         )}
 
-        {selectedModule && resources.length === 0 && (
+        {selectedModule && !loadingResources && resources.length === 0 && (
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
             <p className="text-secondary-text">No resources found for this module.</p>
           </div>

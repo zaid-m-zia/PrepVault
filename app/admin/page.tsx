@@ -25,7 +25,7 @@ interface Subject {
 interface Module {
   id: string
   subject_id: string
-  module_number: number
+  module_name: string
 }
 
 export default function AdminPage() {
@@ -629,7 +629,7 @@ function ModuleManager() {
   const [selectedBranch, setSelectedBranch] = useState('')
   const [selectedSemester, setSelectedSemester] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
-  const [moduleNumber, setModuleNumber] = useState('')
+  const [moduleName, setModuleName] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -710,7 +710,7 @@ function ModuleManager() {
         .from('modules')
         .select('*')
         .eq('subject_id', selectedSubject)
-        .order('module_number')
+        .order('module_name')
 
       if (error) throw error
       setModules(data || [])
@@ -721,7 +721,7 @@ function ModuleManager() {
 
   const handleCreateModule = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedSubject || !moduleNumber) return
+    if (!selectedSubject || !moduleName) return
 
     setLoading(true)
     setMessage('')
@@ -731,13 +731,13 @@ function ModuleManager() {
         .from('modules')
         .insert({
           subject_id: selectedSubject,
-          module_number: parseInt(moduleNumber)
+          module_name: moduleName
         })
 
       if (error) throw error
 
       setMessage('Module created successfully!')
-      setModuleNumber('')
+      setModuleName('')
       fetchModules()
     } catch (error) {
       console.error('Error creating module:', error)
@@ -819,13 +819,12 @@ function ModuleManager() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Module Number</label>
+            <label className="block text-sm font-medium mb-2">Module Name</label>
             <input
-              type="number"
-              value={moduleNumber}
-              onChange={(e) => setModuleNumber(e.target.value)}
-              placeholder="e.g., 1"
-              min="1"
+              type="text"
+              value={moduleName}
+              onChange={(e) => setModuleName(e.target.value)}
+              placeholder="e.g., Introduction"
               className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
               required
             />
@@ -849,7 +848,7 @@ function ModuleManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((module) => (
             <div key={module.id} className="p-4 glass border border-white/10 rounded-lg">
-              <h4 className="font-semibold">Module {module.module_number}</h4>
+              <h4 className="font-semibold">{module.module_name}</h4>
               <p className="text-sm text-secondary-text">
                 Subject: {subjects.find(s => s.id === module.subject_id)?.name}
               </p>
@@ -1137,7 +1136,7 @@ function ResourceManager() {
               >
                 <option value="">Select Module</option>
                 {modules.map((module) => (
-                  <option key={module.id} value={module.id}>Module {module.module_number}</option>
+                  <option key={module.id} value={module.id}>{module.module_name}</option>
                 ))}
               </select>
             </div>
@@ -1326,7 +1325,7 @@ function BulkUploadManager() {
         .from('modules')
         .select('*')
         .eq('subject_id', selectedSubject)
-        .order('module_number')
+        .order('module_name')
 
       if (error) throw error
       setModules(data || [])
@@ -1364,7 +1363,7 @@ function BulkUploadManager() {
         const branchName = branches.find(b => b.id === selectedBranch)?.name || 'Unknown'
         const semester = semesters.find(s => s.id === selectedSemester)?.semester_number || '0'
         const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'Unknown'
-        const module = modules.find(m => m.id === selectedModule)?.module_number || '0'
+        const module = modules.find(m => m.id === selectedModule)?.module_name || 'Unknown'
         const timestamp = Date.now()
         const fileName = `${timestamp}-${file.name}`
 
@@ -1391,7 +1390,7 @@ function BulkUploadManager() {
           .insert({
             module_id: selectedModule,
             title: title,
-            description: `${resourceType} for ${subjectName} - Module ${module}`,
+            description: `${resourceType} for ${subjectName} - ${module}`,
             resource_type: resourceType,
             file_url: publicUrl,
             youtube_link: null,
@@ -1538,7 +1537,7 @@ function BulkUploadManager() {
               >
                 <option value="">Select Module</option>
                 {modules.map((module) => (
-                  <option key={module.id} value={module.id}>Module {module.module_number}</option>
+                  <option key={module.id} value={module.id}>{module.module_name}</option>
                 ))}
               </select>
             </div>
