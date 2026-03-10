@@ -114,18 +114,15 @@ export default function ResourceViewer({ open, onClose, resource }: ResourceView
             )}
 
             {!isPlaylist && resource.file_url && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (resource?.file_url) {
-                    window.open(resource.file_url, '_blank', 'noopener,noreferrer')
-                  }
-                }}
+              <a
+                href={resource.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg glass border border-white/10 hover:border-cyan-400/50 transition-all text-sm font-medium"
               >
                 <ExternalLink className="w-4 h-4" />
                 Open in new tab
-              </button>
+              </a>
             )}
 
             <button
