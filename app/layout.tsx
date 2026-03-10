@@ -6,6 +6,7 @@ import Footer from '../components/layout/Footer';
 import PrepVaultAI from '../components/PrepVaultAI';
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAIOpen, setIsAIOpen] = useState(false);
@@ -42,6 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <Sparkles className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
         </button>
+
+        {/* Vercel Analytics */}
+        <Analytics />
       </body>
     </html>
   );
