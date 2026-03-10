@@ -28,16 +28,17 @@ interface Module {
   module_name: string
 }
 
+// Create Supabase client outside component to prevent recreation
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+)
+
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [activeTab, setActiveTab] = useState('branches')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
 
   useEffect(() => {
     async function checkAuth() {
@@ -53,7 +54,7 @@ export default function AdminPage() {
     }
 
     checkAuth()
-  }, [supabase])
+  }, [])
 
   if (loading) {
     return (
@@ -155,18 +156,17 @@ function BranchManager() {
   const [newBranchName, setNewBranchName] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForBranch()
   }, [])
 
-  const fetchBranches = async () => {
+  const fetchBranchesForBranch = async () => {
     try {
+      setFetchLoading(true)
       const { data, error } = await supabase
         .from('branches')
         .select('*')
@@ -176,6 +176,9 @@ function BranchManager() {
       setBranches(data || [])
     } catch (error) {
       console.error('Error fetching branches:', error)
+      setMessage('Failed to load branches')
+    } finally {
+      setFetchLoading(false)
     }
   }
 
@@ -195,12 +198,34 @@ function BranchManager() {
 
       setMessage('Branch created successfully!')
       setNewBranchName('')
-      fetchBranches()
+      fetchBranchesForBranch()
     } catch (error) {
       console.error('Error creating branch:', error)
       setMessage('Failed to create branch. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteBranch = async (branchId: string) => {
+    if (!confirm("Are you sure you want to delete this branch?")) return
+
+    setDeleteSuccess('')
+    setDeleteError('')
+
+    try {
+      const { error } = await supabase
+        .from('branches')
+        .delete()
+        .eq('id', branchId)
+
+      if (error) throw error
+
+      setDeleteSuccess('Branch deleted successfully!')
+      fetchBranchesForBranch()
+    } catch (error) {
+      console.error('Error deleting branch:', error)
+      setDeleteError('Failed to delete branch. Please try again.')
     }
   }
 
@@ -217,6 +242,20 @@ function BranchManager() {
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             <p className="text-sm">{message}</p>
+          </div>
+        )}
+
+        {/* Delete Success Message */}
+        {deleteSuccess && (
+          <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400">{deleteSuccess}</p>
+          </div>
+        )}
+
+        {/* Delete Error Message */}
+        {deleteError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{deleteError}</p>
           </div>
         )}
 
@@ -245,7 +284,15 @@ function BranchManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {branches.map((branch) => (
             <div key={branch.id} className="p-4 glass border border-white/10 rounded-lg">
-              <h4 className="font-semibold">{branch.name}</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold">{branch.name}</h4>
+                <button
+                  onClick={() => handleDeleteBranch(branch.id)}
+                  className="px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -264,24 +311,25 @@ function SemesterManager() {
   const [semesterNumber, setSemesterNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForSemester()
   }, [])
 
   useEffect(() => {
     if (selectedBranch) {
       fetchSemesters()
+    } else {
+      setSemesters([])
     }
   }, [selectedBranch])
 
-  const fetchBranches = async () => {
+  const fetchBranchesForSemester = async () => {
     try {
+      setFetchLoading(true)
       const { data, error } = await supabase
         .from('branches')
         .select('*')
@@ -291,6 +339,9 @@ function SemesterManager() {
       setBranches(data || [])
     } catch (error) {
       console.error('Error fetching branches:', error)
+      setMessage('Failed to load branches')
+    } finally {
+      setFetchLoading(false)
     }
   }
 
@@ -306,6 +357,7 @@ function SemesterManager() {
       setSemesters(data || [])
     } catch (error) {
       console.error('Error fetching semesters:', error)
+      setMessage('Failed to load semesters')
     }
   }
 
@@ -337,6 +389,28 @@ function SemesterManager() {
     }
   }
 
+  const handleDeleteSemester = async (semesterId: string) => {
+    if (!confirm("Are you sure you want to delete this semester?")) return
+
+    setDeleteSuccess('')
+    setDeleteError('')
+
+    try {
+      const { error } = await supabase
+        .from('semesters')
+        .delete()
+        .eq('id', semesterId)
+
+      if (error) throw error
+
+      setDeleteSuccess('Semester deleted successfully!')
+      fetchSemesters()
+    } catch (error) {
+      console.error('Error deleting semester:', error)
+      setDeleteError('Failed to delete semester. Please try again.')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -350,6 +424,20 @@ function SemesterManager() {
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             <p className="text-sm">{message}</p>
+          </div>
+        )}
+
+        {/* Delete Success Message */}
+        {deleteSuccess && (
+          <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400">{deleteSuccess}</p>
+          </div>
+        )}
+
+        {/* Delete Error Message */}
+        {deleteError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{deleteError}</p>
           </div>
         )}
 
@@ -401,10 +489,20 @@ function SemesterManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {semesters.map((semester) => (
             <div key={semester.id} className="p-4 glass border border-white/10 rounded-lg">
-              <h4 className="font-semibold">Semester {semester.semester_number}</h4>
-              <p className="text-sm text-secondary-text">
-                Branch: {branches.find(b => b.id === semester.branch_id)?.name}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">Semester {semester.semester_number}</h4>
+                  <p className="text-sm text-secondary-text">
+                    Branch: {branches.find(b => b.id === semester.branch_id)?.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteSemester(semester.id)}
+                  className="px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -428,30 +526,34 @@ function SubjectManager() {
   const [subjectName, setSubjectName] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForSubject()
   }, [])
 
   useEffect(() => {
     if (selectedBranch) {
       fetchSemesters()
+    } else {
+      setSemesters([])
+      setSelectedSemester('')
     }
   }, [selectedBranch])
 
   useEffect(() => {
     if (selectedSemester) {
       fetchSubjects()
+    } else {
+      setSubjects([])
     }
   }, [selectedSemester])
 
-  const fetchBranches = async () => {
+  const fetchBranchesForSubject = async () => {
     try {
+      setFetchLoading(true)
       const { data, error } = await supabase
         .from('branches')
         .select('*')
@@ -461,6 +563,9 @@ function SubjectManager() {
       setBranches(data || [])
     } catch (error) {
       console.error('Error fetching branches:', error)
+      setMessage('Failed to load branches')
+    } finally {
+      setFetchLoading(false)
     }
   }
 
@@ -476,6 +581,7 @@ function SubjectManager() {
       setSemesters(data || [])
     } catch (error) {
       console.error('Error fetching semesters:', error)
+      setMessage('Failed to load semesters')
     }
   }
 
@@ -491,6 +597,7 @@ function SubjectManager() {
       setSubjects(data || [])
     } catch (error) {
       console.error('Error fetching subjects:', error)
+      setMessage('Failed to load subjects')
     }
   }
 
@@ -522,6 +629,28 @@ function SubjectManager() {
     }
   }
 
+  const handleDeleteSubject = async (subjectId: string) => {
+    if (!confirm("Are you sure you want to delete this subject?")) return
+
+    setDeleteSuccess('')
+    setDeleteError('')
+
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', subjectId)
+
+      if (error) throw error
+
+      setDeleteSuccess('Subject deleted successfully!')
+      fetchSubjects()
+    } catch (error) {
+      console.error('Error deleting subject:', error)
+      setDeleteError('Failed to delete subject. Please try again.')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -535,6 +664,20 @@ function SubjectManager() {
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             <p className="text-sm">{message}</p>
+          </div>
+        )}
+
+        {/* Delete Success Message */}
+        {deleteSuccess && (
+          <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400">{deleteSuccess}</p>
+          </div>
+        )}
+
+        {/* Delete Error Message */}
+        {deleteError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{deleteError}</p>
           </div>
         )}
 
@@ -603,10 +746,20 @@ function SubjectManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((subject) => (
             <div key={subject.id} className="p-4 glass border border-white/10 rounded-lg">
-              <h4 className="font-semibold">{subject.name}</h4>
-              <p className="text-sm text-secondary-text">
-                Semester: {semesters.find(s => s.id === subject.semester_id)?.semester_number}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">{subject.name}</h4>
+                  <p className="text-sm text-secondary-text">
+                    Semester: {semesters.find(s => s.id === subject.semester_id)?.semester_number}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteSubject(subject.id)}
+                  className="px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -632,36 +785,43 @@ function ModuleManager() {
   const [moduleName, setModuleName] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForModule()
   }, [])
 
   useEffect(() => {
     if (selectedBranch) {
       fetchSemesters()
+    } else {
+      setSemesters([])
+      setSelectedSemester('')
     }
   }, [selectedBranch])
 
   useEffect(() => {
     if (selectedSemester) {
       fetchSubjects()
+    } else {
+      setSubjects([])
+      setSelectedSubject('')
     }
   }, [selectedSemester])
 
   useEffect(() => {
     if (selectedSubject) {
       fetchModules()
+    } else {
+      setModules([])
     }
   }, [selectedSubject])
 
-  const fetchBranches = async () => {
+  const fetchBranchesForModule = async () => {
     try {
+      setFetchLoading(true)
       const { data, error } = await supabase
         .from('branches')
         .select('*')
@@ -671,6 +831,9 @@ function ModuleManager() {
       setBranches(data || [])
     } catch (error) {
       console.error('Error fetching branches:', error)
+      setMessage('Failed to load branches')
+    } finally {
+      setFetchLoading(false)
     }
   }
 
@@ -686,6 +849,7 @@ function ModuleManager() {
       setSemesters(data || [])
     } catch (error) {
       console.error('Error fetching semesters:', error)
+      setMessage('Failed to load semesters')
     }
   }
 
@@ -701,6 +865,7 @@ function ModuleManager() {
       setSubjects(data || [])
     } catch (error) {
       console.error('Error fetching subjects:', error)
+      setMessage('Failed to load subjects')
     }
   }
 
@@ -716,6 +881,7 @@ function ModuleManager() {
       setModules(data || [])
     } catch (error) {
       console.error('Error fetching modules:', error)
+      setMessage('Failed to load modules')
     }
   }
 
@@ -747,6 +913,28 @@ function ModuleManager() {
     }
   }
 
+  const handleDeleteModule = async (moduleId: string) => {
+    if (!confirm("Are you sure you want to delete this module?")) return
+
+    setDeleteSuccess('')
+    setDeleteError('')
+
+    try {
+      const { error } = await supabase
+        .from('modules')
+        .delete()
+        .eq('id', moduleId)
+
+      if (error) throw error
+
+      setDeleteSuccess('Module deleted successfully!')
+      fetchModules()
+    } catch (error) {
+      console.error('Error deleting module:', error)
+      setDeleteError('Failed to delete module. Please try again.')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -760,6 +948,20 @@ function ModuleManager() {
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             <p className="text-sm">{message}</p>
+          </div>
+        )}
+
+        {/* Delete Success Message */}
+        {deleteSuccess && (
+          <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400">{deleteSuccess}</p>
+          </div>
+        )}
+
+        {/* Delete Error Message */}
+        {deleteError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{deleteError}</p>
           </div>
         )}
 
@@ -848,10 +1050,20 @@ function ModuleManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((module) => (
             <div key={module.id} className="p-4 glass border border-white/10 rounded-lg">
-              <h4 className="font-semibold">{module.module_name}</h4>
-              <p className="text-sm text-secondary-text">
-                Subject: {subjects.find(s => s.id === module.subject_id)?.name}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">{module.module_name}</h4>
+                  <p className="text-sm text-secondary-text">
+                    Subject: {subjects.find(s => s.id === module.subject_id)?.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteModule(module.id)}
+                  className="px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -884,14 +1096,14 @@ function ResourceManager() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
+  const [uploadSuccess, setUploadSuccess] = useState('')
+  const [uploadError, setUploadError] = useState('')
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [resources, setResources] = useState<any[]>([])
 
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForResource()
   }, [])
 
   useEffect(() => {
@@ -912,7 +1124,11 @@ function ResourceManager() {
     }
   }, [selectedSubject])
 
-  const fetchBranches = async () => {
+  useEffect(() => {
+    fetchResources()
+  }, [selectedModule])
+
+  const fetchBranchesForResource = async () => {
     try {
       const { data, error } = await supabase
         .from('branches')
@@ -960,9 +1176,9 @@ function ResourceManager() {
     try {
       const { data, error } = await supabase
         .from('modules')
-        .select('*')
+        .select('id, module_name, subject_id')
         .eq('subject_id', selectedSubject)
-        .order('module_number')
+        .order('module_name')
 
       if (error) throw error
       setModules(data || [])
@@ -971,12 +1187,48 @@ function ResourceManager() {
     }
   }
 
+  const fetchResources = async () => {
+    if (!selectedModule) {
+      setResources([])
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('resources')
+        .select('*')
+        .eq('module_id', selectedModule)
+        .order('title')
+
+      if (error) throw error
+      setResources(data || [])
+    } catch (error) {
+      console.error('Error fetching resources:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedModule) return
+
+    // Clear previous messages
+    setUploadSuccess('')
+    setUploadError('')
+
+    // STEP 1: Validate input
+    if (!selectedModule) {
+      setUploadError("Please select a module first")
+      return
+    }
+
+    if (!file) {
+      setUploadError("Please select a file")
+      return
+    }
+
+    console.log("Uploading module:", selectedModule)
+    console.log("Uploading file:", file)
 
     setUploading(true)
-    setMessage('')
 
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -984,40 +1236,57 @@ function ResourceManager() {
         throw new Error('Not authenticated')
       }
 
-      let fileUrl = ''
+      // STEP 2: Upload file to Supabase storage
+      const filePath = `${selectedModule}/${Date.now()}_${file.name}`
 
-      // Upload PDF if provided
-      if (file) {
-        const fileName = `${Date.now()}-${file.name}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('resources')
-          .upload(`pdfs/${fileName}`, file)
+      console.log("File path:", filePath)
 
-        if (uploadError) throw uploadError
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("resources")
+        .upload(filePath, file)
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('resources')
-          .getPublicUrl(`pdfs/${fileName}`)
-
-        fileUrl = publicUrl
+      if (uploadError) {
+        console.error("Supabase Storage Upload Error:", uploadError)
+        setUploadError("File Upload Error: " + uploadError.message)
+        return
       }
 
-      // Save resource metadata
-      const { error: insertError } = await supabase
-        .from('resources')
+      // STEP 3: Generate public URL
+      const { data: urlData } = supabase.storage
+        .from("resources")
+        .getPublicUrl(filePath)
+
+      const publicUrl = urlData.publicUrl
+      console.log("Public URL:", publicUrl)
+
+      // STEP 4: Insert row into database
+      console.log("module_id:", selectedModule)
+      console.log("title:", formData.title)
+      console.log("file_url:", publicUrl)
+      console.log("youtube_link:", formData.youtubeLink)
+
+      const { error: dbError } = await supabase
+        .from("resources")
         .insert({
           module_id: selectedModule,
           title: formData.title,
           description: formData.description,
           resource_type: formData.resourceType,
-          file_url: fileUrl || null,
-          youtube_link: formData.youtubeLink || null,
-          created_by: session.session.user.id
+          file_url: publicUrl,
+          youtube_link: formData.youtubeLink || null
         })
 
-      if (insertError) throw insertError
+      if (dbError) {
+        console.error("Supabase Insert Error:", dbError)
+        setUploadError("Database Error: " + dbError.message)
+        return
+      }
 
-      setMessage('Resource uploaded successfully!')
+      // STEP 5: Show success message
+      setUploadSuccess("Resource uploaded successfully")
+      setUploadError('')
+
+      // STEP 6: Reset form fields
       setFormData({
         title: '',
         description: '',
@@ -1025,6 +1294,9 @@ function ResourceManager() {
         youtubeLink: ''
       })
       setFile(null)
+
+      // Refresh modules list after successful upload
+      await fetchModules()
 
     } catch (error) {
       console.error('Upload error:', error)
@@ -1047,6 +1319,43 @@ function ResourceManager() {
     }
   }
 
+  const handleDeleteResource = async (resourceId: string, fileUrl: string) => {
+    if (!confirm("Are you sure you want to delete this resource?")) return
+
+    setDeleteSuccess('')
+    setDeleteError('')
+
+    try {
+      // Extract file path from URL
+      const urlParts = fileUrl.split('/')
+      const filePath = urlParts.slice(-2).join('/') // Get the last two parts (moduleId/filename)
+
+      // Delete file from storage
+      const { error: storageError } = await supabase.storage
+        .from("resources")
+        .remove([filePath])
+
+      if (storageError) {
+        console.error("Storage deletion error:", storageError)
+        // Continue with database deletion even if storage deletion fails
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('resources')
+        .delete()
+        .eq('id', resourceId)
+
+      if (dbError) throw dbError
+
+      setDeleteSuccess('Resource deleted successfully!')
+      fetchResources()
+    } catch (error) {
+      console.error('Error deleting resource:', error)
+      setDeleteError('Failed to delete resource. Please try again.')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -1057,9 +1366,17 @@ function ResourceManager() {
       <div className="glass rounded-xl p-6 border border-white/10">
         <h3 className="text-xl font-display font-bold mb-4">Upload Resource</h3>
 
-        {message && (
-          <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
-            <p className="text-sm">{message}</p>
+        {/* Success Message */}
+        {uploadSuccess && (
+          <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400">{uploadSuccess}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {uploadError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{uploadError}</p>
           </div>
         )}
 
@@ -1228,6 +1545,51 @@ function ResourceManager() {
           </button>
         </form>
       </div>
+
+      {/* Delete Success Message */}
+      {deleteSuccess && (
+        <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+          <p className="text-sm text-green-400">{deleteSuccess}</p>
+        </div>
+      )}
+
+      {/* Delete Error Message */}
+      {deleteError && (
+        <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+          <p className="text-sm text-red-400">{deleteError}</p>
+        </div>
+      )}
+
+      {/* Existing Resources List */}
+      <div className="glass rounded-xl p-6 border border-white/10">
+        <h3 className="text-xl font-display font-bold mb-4">Existing Resources</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {resources.map((resource) => (
+            <div key={resource.id} className="p-4 glass border border-white/10 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold truncate">{resource.title}</h4>
+                  <p className="text-sm text-secondary-text truncate">
+                    {resource.resource_type}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteResource(resource.id, resource.file_url)}
+                  className="ml-2 px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all flex-shrink-0"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {resources.length === 0 && selectedModule && (
+          <p className="text-secondary-text text-center py-8">No resources uploaded for this module yet.</p>
+        )}
+        {!selectedModule && (
+          <p className="text-secondary-text text-center py-8">Select a module to view resources.</p>
+        )}
+      </div>
     </motion.div>
   )
 }
@@ -1248,13 +1610,8 @@ function BulkUploadManager() {
   const [message, setMessage] = useState('')
   const [errors, setErrors] = useState<string[]>([])
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
-
   useEffect(() => {
-    fetchBranches()
+    fetchBranchesForBulkUpload()
   }, [])
 
   useEffect(() => {
@@ -1275,7 +1632,7 @@ function BulkUploadManager() {
     }
   }, [selectedSubject])
 
-  const fetchBranches = async () => {
+  const fetchBranchesForBulkUpload = async () => {
     try {
       const { data, error } = await supabase
         .from('branches')
@@ -1323,7 +1680,7 @@ function BulkUploadManager() {
     try {
       const { data, error } = await supabase
         .from('modules')
-        .select('*')
+        .select('id, module_name, subject_id')
         .eq('subject_id', selectedSubject)
         .order('module_name')
 
@@ -1393,8 +1750,7 @@ function BulkUploadManager() {
             description: `${resourceType} for ${subjectName} - ${module}`,
             resource_type: resourceType,
             file_url: publicUrl,
-            youtube_link: null,
-            created_by: session.session.user.id
+            youtube_link: null
           })
 
         if (insertError) throw insertError
