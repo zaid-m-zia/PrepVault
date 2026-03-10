@@ -469,28 +469,28 @@ function ResourceCard({ resource }: { resource: Resource }) {
       </div>
 
       <div className="flex gap-2">
-        {resource.file_url && (
+        {resource.resource_type === 'Playlist' ? (
           <a
-            href={resource.file_url}
+            href={resource.youtube_link || '#'}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
-            Download PDF
-          </a>
-        )}
-
-        {resource.youtube_link && (
-          <a
-            href={resource.youtube_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 glass border border-white/10 rounded-lg hover:border-cyan-400/50 transition-all text-sm font-medium"
-          >
             <Play className="w-4 h-4" />
-            Watch Playlist
+            ▶ Watch Playlist
           </a>
+        ) : (
+          resource.file_url && (
+            <a
+              href={resource.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </a>
+          )
         )}
       </div>
     </motion.div>

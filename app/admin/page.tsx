@@ -1220,13 +1220,21 @@ function ResourceManager() {
       return
     }
 
-    if (!file) {
-      setUploadError("Please select a file")
-      return
+    // Different validation for Playlist vs other types
+    if (formData.resourceType === "Playlist") {
+      if (!formData.youtubeLink) {
+        setUploadError("Please add a YouTube playlist link")
+        return
+      }
+    } else {
+      if (!file) {
+        setUploadError("Please select a file")
+        return
+      }
     }
 
     console.log("Uploading module:", selectedModule)
-    console.log("Uploading file:", file)
+    console.log("Resource type:", formData.resourceType)
 
     setUploading(true)
 
@@ -1236,28 +1244,39 @@ function ResourceManager() {
         throw new Error('Not authenticated')
       }
 
-      // STEP 2: Upload file to Supabase storage
-      const filePath = `${selectedModule}/${Date.now()}_${file.name}`
+      let publicUrl = null
 
-      console.log("File path:", filePath)
+      // CASE 1: Playlist - Skip file upload
+      if (formData.resourceType === "Playlist") {
+        console.log("Playlist detected - skipping file upload")
+        console.log("youtube_link:", formData.youtubeLink)
+      } else {
+        // CASE 2: File-based resources - Upload to storage
+        console.log("Uploading file:", file)
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("resources")
-        .upload(filePath, file)
+        // STEP 2: Upload file to Supabase storage
+        const filePath = `${selectedModule}/${Date.now()}_${file!.name}`
 
-      if (uploadError) {
-        console.error("Supabase Storage Upload Error:", uploadError)
-        setUploadError("File Upload Error: " + uploadError.message)
-        return
+        console.log("File path:", filePath)
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("resources")
+          .upload(filePath, file!)
+
+        if (uploadError) {
+          console.error("Supabase Storage Upload Error:", uploadError)
+          setUploadError("File Upload Error: " + uploadError.message)
+          return
+        }
+
+        // STEP 3: Generate public URL
+        const { data: urlData } = supabase.storage
+          .from("resources")
+          .getPublicUrl(filePath)
+
+        publicUrl = urlData.publicUrl
+        console.log("Public URL:", publicUrl)
       }
-
-      // STEP 3: Generate public URL
-      const { data: urlData } = supabase.storage
-        .from("resources")
-        .getPublicUrl(filePath)
-
-      const publicUrl = urlData.publicUrl
-      console.log("Public URL:", publicUrl)
 
       // STEP 4: Insert row into database
       console.log("module_id:", selectedModule)
@@ -1283,7 +1302,10 @@ function ResourceManager() {
       }
 
       // STEP 5: Show success message
-      setUploadSuccess("Resource uploaded successfully")
+      const successMessage = formData.resourceType === "Playlist" 
+        ? "Playlist added successfully" 
+        : "Resource uploaded successfully"
+      setUploadSuccess(successMessage)
       setUploadError('')
 
       // STEP 6: Reset form fields
@@ -1295,8 +1317,8 @@ function ResourceManager() {
       })
       setFile(null)
 
-      // Refresh modules list after successful upload
-      await fetchModules()
+      // Refresh resources list after successful upload
+      await fetchResources()
 
     } catch (error) {
       console.error('Upload error:', error)
@@ -1319,25 +1341,26 @@ function ResourceManager() {
     }
   }
 
-  const handleDeleteResource = async (resourceId: string, fileUrl: string) => {
+  const handleDeleteResource = async (resourceId: string, fileUrl: string | null) => {
     if (!confirm("Are you sure you want to delete this resource?")) return
 
     setDeleteSuccess('')
     setDeleteError('')
 
     try {
-      // Extract file path from URL
-      const urlParts = fileUrl.split('/')
-      const filePath = urlParts.slice(-2).join('/') // Get the last two parts (moduleId/filename)
+      // Delete file from storage only if fileUrl exists (not a playlist)
+      if (fileUrl) {
+        const urlParts = fileUrl.split('/')
+        const filePath = urlParts.slice(-2).join('/') // Get the last two parts (moduleId/filename)
 
-      // Delete file from storage
-      const { error: storageError } = await supabase.storage
-        .from("resources")
-        .remove([filePath])
+        const { error: storageError } = await supabase.storage
+          .from("resources")
+          .remove([filePath])
 
-      if (storageError) {
-        console.error("Storage deletion error:", storageError)
-        // Continue with database deletion even if storage deletion fails
+        if (storageError) {
+          console.error("Storage deletion error:", storageError)
+          // Continue with database deletion even if storage deletion fails
+        }
       }
 
       // Delete from database
@@ -1507,22 +1530,28 @@ function ResourceManager() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2">PDF Upload</label>
+              <label className="block text-sm font-medium mb-2">
+                {formData.resourceType === "Playlist" ? "PDF Upload (Not Required)" : "PDF Upload"}
+              </label>
               <input
                 type="file"
                 accept=".pdf"
                 onChange={handleFileChange}
-                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                disabled={formData.resourceType === "Playlist"}
+                className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">YouTube Playlist Link (Optional)</label>
+              <label className="block text-sm font-medium mb-2">
+                {formData.resourceType === "Playlist" ? "YouTube Playlist Link (Required)" : "YouTube Playlist Link (Optional)"}
+              </label>
               <input
                 type="url"
                 name="youtubeLink"
                 value={formData.youtubeLink}
                 onChange={handleInputChange}
+                required={formData.resourceType === "Playlist"}
                 className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
                 placeholder="https://youtube.com/playlist?list=..."
               />
@@ -1537,10 +1566,10 @@ function ResourceManager() {
             {uploading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Uploading...
+                {formData.resourceType === "Playlist" ? "Adding..." : "Uploading..."}
               </>
             ) : (
-              'Upload Resource'
+              formData.resourceType === "Playlist" ? "Add Playlist" : "Upload Resource"
             )}
           </button>
         </form>
