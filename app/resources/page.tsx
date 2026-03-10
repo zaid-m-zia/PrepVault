@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
-import { Download, Play } from 'lucide-react'
+import { Play } from 'lucide-react'
+import ResourceViewer from '../../components/ResourceViewer'
 
 interface Branch {
   id: string
@@ -63,6 +64,8 @@ export default function ResourcesPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [selectedModule, setSelectedModule] = useState<string>('')
   const [activeTab, setActiveTab] = useState<string>('Notes')
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
 
   // Load branches on mount
   useEffect(() => {
@@ -238,6 +241,16 @@ export default function ResourcesPage() {
   const handleModuleChange = useCallback((moduleId: string) => {
     setSelectedModule(moduleId)
     setError(null)
+  }, [])
+
+  const openViewer = useCallback((resource: Resource) => {
+    setSelectedResource(resource)
+    setViewerOpen(true)
+  }, [])
+
+  const closeViewer = useCallback(() => {
+    setViewerOpen(false)
+    setSelectedResource(null)
   }, [])
 
   if (loading) {
@@ -429,11 +442,17 @@ export default function ResourcesPage() {
               resources
                 .filter((resource) => resource.resource_type === activeTab)
                 .map((resource) => (
-                  <ResourceCard key={resource.id} resource={resource} />
+                  <ResourceCard key={resource.id} resource={resource} onOpen={() => openViewer(resource)} />
                 ))
             )}
           </motion.div>
         )}
+
+        <ResourceViewer
+          open={viewerOpen}
+          onClose={closeViewer}
+          resource={selectedResource}
+        />
 
         {selectedModule && !loadingResources && resources.filter((resource) => resource.resource_type === activeTab).length === 0 && (
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
@@ -451,7 +470,7 @@ export default function ResourcesPage() {
   )
 }
 
-function ResourceCard({ resource }: { resource: Resource }) {
+function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -469,29 +488,14 @@ function ResourceCard({ resource }: { resource: Resource }) {
       </div>
 
       <div className="flex gap-2">
-        {resource.resource_type === 'Playlist' ? (
-          <a
-            href={resource.youtube_link || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
-          >
-            <Play className="w-4 h-4" />
-            ▶ Watch Playlist
-          </a>
-        ) : (
-          resource.file_url && (
-            <a
-              href={resource.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
-            </a>
-          )
-        )}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+        >
+          <Play className="w-4 h-4" />
+          Open Resource
+        </button>
       </div>
     </motion.div>
   )
