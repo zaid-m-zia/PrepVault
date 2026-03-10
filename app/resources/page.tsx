@@ -62,6 +62,7 @@ export default function ResourcesPage() {
   const [selectedSemester, setSelectedSemester] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [selectedModule, setSelectedModule] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<string>('Notes')
 
   // Load branches on mount
   useEffect(() => {
@@ -353,6 +354,58 @@ export default function ResourcesPage() {
           </div>
         </motion.div>
 
+        {/* Resource Type Tabs */}
+        {selectedModule && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex gap-3 border-b border-white/10 pb-2">
+              <button
+                onClick={() => setActiveTab('Notes')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'Notes'
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg'
+                    : 'glass border border-white/10 text-secondary-text hover:border-cyan-400/30 hover:text-primary-text'
+                }`}
+              >
+                📘 Notes
+              </button>
+              <button
+                onClick={() => setActiveTab('PYQ')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'PYQ'
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg'
+                    : 'glass border border-white/10 text-secondary-text hover:border-cyan-400/30 hover:text-primary-text'
+                }`}
+              >
+                📄 PYQs
+              </button>
+              <button
+                onClick={() => setActiveTab('Assignment')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'Assignment'
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg'
+                    : 'glass border border-white/10 text-secondary-text hover:border-cyan-400/30 hover:text-primary-text'
+                }`}
+              >
+                📝 Assignments
+              </button>
+              <button
+                onClick={() => setActiveTab('Playlist')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'Playlist'
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg'
+                    : 'glass border border-white/10 text-secondary-text hover:border-cyan-400/30 hover:text-primary-text'
+                }`}
+              >
+                ▶ Playlists
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Resources Grid */}
         {selectedModule && (
           <motion.div
@@ -373,16 +426,18 @@ export default function ResourcesPage() {
                 </div>
               ))
             ) : (
-              resources.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
-              ))
+              resources
+                .filter((resource) => resource.resource_type === activeTab)
+                .map((resource) => (
+                  <ResourceCard key={resource.id} resource={resource} />
+                ))
             )}
           </motion.div>
         )}
 
-        {selectedModule && !loadingResources && resources.length === 0 && (
+        {selectedModule && !loadingResources && resources.filter((resource) => resource.resource_type === activeTab).length === 0 && (
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
-            <p className="text-secondary-text">No resources found for this module.</p>
+            <p className="text-secondary-text">No resources available in this category.</p>
           </div>
         )}
 
