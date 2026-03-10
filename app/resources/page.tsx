@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
 import { Play } from 'lucide-react'
@@ -47,6 +48,26 @@ const supabase = createClient(
 )
 
 export default function ResourcesPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="py-12 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-8">
+              <h2 className="text-2xl font-display font-bold">Resources</h2>
+              <p className="mt-2 text-sm text-secondary-text">Loading...</p>
+            </div>
+          </div>
+        </section>
+      }
+    >
+      <ResourcesPageContent />
+    </Suspense>
+  )
+}
+
+function ResourcesPageContent() {
+  const searchParams = useSearchParams()
   const [branches, setBranches] = useState<Branch[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -66,6 +87,7 @@ export default function ResourcesPage() {
   const [activeTab, setActiveTab] = useState<string>('Notes')
   const [viewerOpen, setViewerOpen] = useState(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
+  const [smartSearchMessage, setSmartSearchMessage] = useState<string | null>(null)
 
   // Load branches on mount
   useEffect(() => {
@@ -217,11 +239,97 @@ export default function ResourcesPage() {
     fetchResources()
   }, [selectedModule])
 
+  // Auto-select hierarchy from smart search query params.
+  useEffect(() => {
+    const subjectId = searchParams.get('subject')
+    const moduleId = searchParams.get('module')
+
+    if (!subjectId && !moduleId) {
+      setSmartSearchMessage(null)
+      return
+    }
+
+    async function applySmartSelection() {
+      try {
+        setError(null)
+
+        if (moduleId) {
+          const { data: moduleData, error: moduleError } = await supabase
+            .from('modules')
+            .select('id, module_name, subject_id')
+            .eq('id', moduleId)
+            .single()
+
+          if (moduleError || !moduleData) {
+            setSmartSearchMessage('No exact match found. Showing closest resources.')
+            return
+          }
+
+          const { data: subjectData, error: subjectError } = await supabase
+            .from('subjects')
+            .select('id, semester_id')
+            .eq('id', moduleData.subject_id)
+            .single()
+
+          if (subjectError || !subjectData) throw subjectError
+
+          const { data: semesterData, error: semesterError } = await supabase
+            .from('semesters')
+            .select('id, branch_id')
+            .eq('id', subjectData.semester_id)
+            .single()
+
+          if (semesterError || !semesterData) throw semesterError
+
+          setSelectedBranch(semesterData.branch_id)
+          setSelectedSemester(semesterData.id)
+          setSelectedSubject(subjectData.id)
+          setSelectedModule(moduleData.id)
+          setSmartSearchMessage(`Showing resources for ${moduleData.module_name}`)
+          return
+        }
+
+        if (subjectId) {
+          const { data: subjectData, error: subjectError } = await supabase
+            .from('subjects')
+            .select('id, name, semester_id')
+            .eq('id', subjectId)
+            .single()
+
+          if (subjectError || !subjectData) {
+            setSmartSearchMessage('No exact match found. Showing closest resources.')
+            return
+          }
+
+          const { data: semesterData, error: semesterError } = await supabase
+            .from('semesters')
+            .select('id, branch_id')
+            .eq('id', subjectData.semester_id)
+            .single()
+
+          if (semesterError || !semesterData) throw semesterError
+
+          setSelectedBranch(semesterData.branch_id)
+          setSelectedSemester(semesterData.id)
+          setSelectedSubject(subjectData.id)
+          setSelectedModule('')
+          setSmartSearchMessage(`Showing modules for ${subjectData.name}`)
+        }
+      } catch (selectionError) {
+        console.error('Error applying smart search selection:', selectionError)
+        setSmartSearchMessage('No exact match found. Showing closest resources.')
+      }
+    }
+
+    applySmartSelection()
+  }, [searchParams])
+
   const handleBranchChange = useCallback((branchId: string) => {
     setSelectedBranch(branchId)
     setSelectedSemester('')
     setSelectedSubject('')
     setSelectedModule('')
+    setSmartSearchMessage(null)
     setError(null)
   }, [])
 
@@ -229,17 +337,20 @@ export default function ResourcesPage() {
     setSelectedSemester(semesterId)
     setSelectedSubject('')
     setSelectedModule('')
+    setSmartSearchMessage(null)
     setError(null)
   }, [])
 
   const handleSubjectChange = useCallback((subjectId: string) => {
     setSelectedSubject(subjectId)
     setSelectedModule('')
+    setSmartSearchMessage(null)
     setError(null)
   }, [])
 
   const handleModuleChange = useCallback((moduleId: string) => {
     setSelectedModule(moduleId)
+    setSmartSearchMessage(null)
     setError(null)
   }, [])
 
@@ -281,6 +392,9 @@ export default function ResourcesPage() {
           <p className="mt-2 text-sm text-secondary-text">
             Browse curated, exam-focused resources organized by branch, semester, subject, and module.
           </p>
+          {smartSearchMessage && (
+            <p className="mt-3 text-sm text-cyan-300">{smartSearchMessage}</p>
+          )}
         </div>
 
         {/* Hierarchical filter bar */}

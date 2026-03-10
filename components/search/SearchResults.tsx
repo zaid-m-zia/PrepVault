@@ -18,6 +18,7 @@ export default function SearchResults() {
   const searchParams = useSearchParams()
   const searchType = searchParams.get('type') || 'people'
   const query = searchParams.get('query') || ''
+  const fallback = searchParams.get('fallback') === '1'
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -88,6 +89,14 @@ export default function SearchResults() {
   }
 
   if (results.length === 0) {
+    if (searchType === 'resources' && fallback) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-secondary-text">No exact match found. Showing closest resources.</p>
+        </div>
+      )
+    }
+
     return (
       <div className="text-center py-12">
         <p className="text-secondary-text">No results found for "{query}"</p>
