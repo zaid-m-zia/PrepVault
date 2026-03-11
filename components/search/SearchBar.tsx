@@ -61,6 +61,7 @@ export default function SearchBar() {
       'start',
       'guide',
       'path',
+      'prepare',
     ]
 
     return learningWords.some((word) => input.toLowerCase().includes(word))
@@ -90,6 +91,7 @@ export default function SearchBar() {
       'notes',
       'ppt',
       'playlist',
+      'what',
     ]
 
     const words = input
@@ -266,18 +268,18 @@ export default function SearchBar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute left-0 top-full mt-2 w-full z-50 glass rounded-lg border border-slate-700 shadow-lg p-2"
+              className="absolute left-0 top-full mt-2 w-full z-50 glass rounded-lg border border-slate-700 shadow-lg p-3"
             >
-              <div className="flex gap-1">
+              <div className="flex gap-3 items-center">
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`px-3 py-2 rounded-md text-xs font-medium transition-colors flex-1 ${
+                    className={`flex-1 text-center px-4 py-2 rounded-lg text-sm font-medium transition ${
                       category === cat.id
-                        ? 'bg-accent text-white'
-                        : 'bg-white/5 text-secondary-text hover:bg-white/10'
+                        ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-md'
+                        : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white'
                     }`}
                   >
                     {cat.label}
