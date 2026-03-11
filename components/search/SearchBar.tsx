@@ -72,6 +72,9 @@ export default function SearchBar() {
       'help',
       'please',
       'explain',
+      'notes',
+      'ppt',
+      'playlist',
     ]
 
     const words = input
