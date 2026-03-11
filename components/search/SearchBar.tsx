@@ -18,6 +18,13 @@ type SearchModuleRow = {
   subject_id: string
 }
 
+type SearchResourceRow = {
+  id: string
+  module_id: string
+  title: string | null
+  description: string | null
+}
+
 export default function SearchBar() {
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -44,6 +51,36 @@ export default function SearchBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  function cleanSearchQuery(input: string): string {
+    const fillerWords = [
+      'i',
+      'want',
+      'to',
+      'learn',
+      'study',
+      'teach',
+      'me',
+      'show',
+      'find',
+      'please',
+      'how',
+      'can',
+      'resources',
+      'about',
+      'for',
+      'understand',
+      'help',
+      'please',
+    ]
+
+    const words = input
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word && !fillerWords.includes(word))
+
+    return words.join(' ')
+  }
+
   function normalizeQuery(value: string) {
     return value
       .trim()
@@ -58,22 +95,57 @@ export default function SearchBar() {
     if (!rawQuery) return
 
     if (category === 'resources') {
-      const normalizedQuery = normalizeQuery(rawQuery)
+      const cleanedInput = cleanSearchQuery(rawQuery)
+      const searchQueryText = cleanedInput || rawQuery
+      const normalizedQuery = normalizeQuery(searchQueryText)
+
+      if (!normalizedQuery.trim()) {
+        router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+        setQuery('')
+        setOpen(false)
+        return
+      }
 
       try {
-        const [{ data: subjectData }, { data: moduleData }, { data: authData }] = await Promise.all([
-          supabase
-            .from('subjects')
-            .select('id, name, semester_id')
-            .textSearch('search_vector', normalizedQuery, { type: 'plain' })
-            .limit(25),
+        const [
+          { data: moduleData },
+          { data: subjectData },
+          { data: resourceTitleData },
+          { data: resourceDescriptionData },
+          { data: authData },
+        ] = await Promise.all([
           supabase
             .from('modules')
             .select('id, module_name, subject_id')
-            .textSearch('search_vector', normalizedQuery, { type: 'plain' })
+            .ilike('module_name', `%${normalizedQuery}%`)
+            .limit(25),
+          supabase
+            .from('subjects')
+            .select('id, name, semester_id')
+            .or(`name.ilike.%${normalizedQuery}%,alias.ilike.%${normalizedQuery}%`)
+            .limit(25),
+          supabase
+            .from('resources')
+            .select('id, module_id, title, description')
+            .ilike('title', `%${normalizedQuery}%`)
+            .limit(25),
+          supabase
+            .from('resources')
+            .select('id, module_id, title, description')
+            .ilike('description', `%${normalizedQuery}%`)
             .limit(25),
           supabase.auth.getUser(),
         ])
+
+        let resolvedSubjectData = subjectData
+        if (!resolvedSubjectData) {
+          const { data: fallbackSubjectData } = await supabase
+            .from('subjects')
+            .select('id, name, semester_id')
+            .ilike('name', `%${normalizedQuery}%`)
+            .limit(25)
+          resolvedSubjectData = fallbackSubjectData
+        }
 
         let userBranch: string | null = null
         const userId = authData?.user?.id
@@ -88,8 +160,10 @@ export default function SearchBar() {
           userBranch = profileData?.branch ?? null
         }
 
-        const subjects = (subjectData ?? []) as SearchSubjectRow[]
+        const subjects = (resolvedSubjectData ?? []) as SearchSubjectRow[]
         const modules = (moduleData ?? []) as SearchModuleRow[]
+        const resourcesByTitle = (resourceTitleData ?? []) as SearchResourceRow[]
+        const resourcesByDescription = (resourceDescriptionData ?? []) as SearchResourceRow[]
 
         let selectedSubject: { id: string; semester_id: string } | null =
           subjects.length > 0 ? { id: subjects[0].id, semester_id: subjects[0].semester_id } : null
@@ -120,11 +194,17 @@ export default function SearchBar() {
           }
         }
 
-        // Prefer module match over subject match when both exist.
+        const encodedQuery = encodeURIComponent(cleanedInput || normalizedQuery)
+
+        // Priority: module > subject > resource title > resource description.
         if (modules.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}`)
+          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
         } else if (selectedSubject) {
-          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}`)
+          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}`)
+        } else if (resourcesByTitle.length > 0) {
+          router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}`)
+        } else if (resourcesByDescription.length > 0) {
+          router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}`)
         } else {
           router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
         }
