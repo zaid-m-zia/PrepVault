@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { isNewOpportunity } from '../../lib/opportunityUtils';
 
 export type SupabaseEvent = {
   id: string;
@@ -11,6 +12,7 @@ export type SupabaseEvent = {
   location: string | null;
   event_date: string | null;
   registration_link: string | null;
+  created_at?: string | null;
   company?: string | null;
   duration?: string | null;
   stipend?: string | null;
@@ -27,10 +29,19 @@ export default function EventCard({ event }: { event: SupabaseEvent }) {
     ? new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : '—';
 
+  const isNew = isNewOpportunity(event.created_at);
+
   return (
-    <article className="glass rounded-xl p-6 min-h-[260px] flex flex-col justify-between border border-white/10 hover:border-white/20 transition-shadow">
+    <article className="glass rounded-xl p-6 min-h-[260px] flex flex-col justify-between border border-white/10 hover:border-white/20 hover:shadow-lg hover:scale-105 transition-all duration-300">
       <div className="space-y-3">
-        <h3 className="text-lg font-display font-semibold leading-snug">{event.title}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-lg font-display font-semibold leading-snug flex-1">{event.title}</h3>
+          {isNew && (
+            <span className="flex-shrink-0 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 text-xs font-semibold whitespace-nowrap">
+              🔥 NEW
+            </span>
+          )}
+        </div>
 
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           <div className="flex flex-col gap-0.5">
@@ -61,7 +72,7 @@ export default function EventCard({ event }: { event: SupabaseEvent }) {
       </div>
 
       <div className="mt-4 flex items-center justify-end">
-        <Link href={`/events/${event.id}`} className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">View Details</Link>
+        <Link href={`/events/${event.id}`} className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold hover:bg-accent/90 transition-colors">View Details</Link>
       </div>
     </article>
   );

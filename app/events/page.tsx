@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import EventCard, { type SupabaseEvent } from '../../components/events/EventCard';
 import InternshipCard from '../../components/events/InternshipCard';
 import InternshipDetailsModal from '../../components/events/InternshipDetailsModal';
+import TrendingOpportunitiesSection from '../../components/events/TrendingOpportunitiesSection';
 
 const MODES = ['Online', 'Offline', 'Hybrid'] as const;
 const CATEGORIES = ['Hackathon', 'Tech Fest', 'Competition', 'Coding Challenge', 'Conference', 'Tech Workshop', 'Internship'] as const;
@@ -15,6 +16,7 @@ const supabase = createClient(
 );
 
 export default function EventsPage() {
+  const [trendingOpportunities, setTrendingOpportunities] = useState<SupabaseEvent[]>([]);
   const [featuredInternships, setFeaturedInternships] = useState<SupabaseEvent[]>([]);
   const [otherOpportunities, setOtherOpportunities] = useState<SupabaseEvent[]>([]);
   const [colleges, setColleges] = useState<string[]>([]);
@@ -33,6 +35,18 @@ export default function EventsPage() {
 
     const uniqueColleges = Array.from(new Set((data ?? []).map((item: { college: string | null }) => item.college).filter(Boolean) as string[])).sort();
     setColleges(uniqueColleges);
+  }, []);
+
+  const fetchTrendingOpportunities = useCallback(async () => {
+    const { data: trendingData } = await supabase
+      .from('events')
+      .select('*')
+      .eq('category', 'Internship')
+      .not('deadline', 'is', null)
+      .order('deadline', { ascending: true })
+      .limit(5);
+
+    setTrendingOpportunities(trendingData ?? []);
   }, []);
 
   const fetchEvents = useCallback(async () => {
@@ -76,7 +90,8 @@ export default function EventsPage() {
 
   useEffect(() => {
     fetchColleges();
-  }, [fetchColleges]);
+    fetchTrendingOpportunities();
+  }, []);
 
   useEffect(() => {
     fetchEvents();
@@ -139,6 +154,10 @@ export default function EventsPage() {
             </div>
           </div>
         </div>
+
+        {!loading && trendingOpportunities.length > 0 && (
+          <TrendingOpportunitiesSection opportunities={trendingOpportunities} onOpenDetails={openInternshipDetails} />
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

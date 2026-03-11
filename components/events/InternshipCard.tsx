@@ -1,11 +1,15 @@
+'use client'
+
 import type { SupabaseEvent } from './EventCard';
+import { getDeadlineText, getDaysRemaining, getUrgencyLevel, getUrgencyBadgeClass, isNewOpportunity } from '../../lib/opportunityUtils';
 
 type Props = {
   internship: SupabaseEvent;
   onOpenDetails: (internship: SupabaseEvent) => void;
+  isCompact?: boolean;
 };
 
-export default function InternshipCard({ internship, onOpenDetails }: Props) {
+export default function InternshipCard({ internship, onOpenDetails, isCompact = false }: Props) {
   const deadline = internship.deadline
     ? new Date(internship.deadline).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : '—';
@@ -16,23 +20,38 @@ export default function InternshipCard({ internship, onOpenDetails }: Props) {
     ? internship.skills.split(',').map((skill) => skill.trim()).filter(Boolean)
     : [];
 
+  const daysRemaining = getDaysRemaining(internship.deadline);
+  const urgencyLevel = getUrgencyLevel(daysRemaining);
+  const urgencyBadgeClass = getUrgencyBadgeClass(urgencyLevel);
+  const deadlineText = getDeadlineText(internship.deadline);
+  const isNew = isNewOpportunity(internship.created_at);
+
+  const minHeightClass = isCompact ? 'min-h-[240px]' : 'min-h-[260px]';
+
   return (
     <article
       onClick={() => onOpenDetails(internship)}
-      className="glass rounded-xl p-6 min-h-[260px] flex flex-col justify-between border border-white/10 hover:border-white/20 hover:shadow-lg transition-all cursor-pointer"
+      className={`glass rounded-xl p-6 ${minHeightClass} flex flex-col justify-between border border-white/10 hover:border-white/20 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer`}
     >
       <div className="space-y-3">
-        <h3 className="text-lg font-display font-semibold leading-snug">{organization}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-lg font-display font-semibold leading-snug flex-1">{organization}</h3>
+          {isNew && (
+            <span className="flex-shrink-0 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 text-xs font-semibold whitespace-nowrap">
+              🔥 NEW
+            </span>
+          )}
+        </div>
         <p className="text-white/90 font-medium">{internshipTitle}</p>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/90">
+        <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs text-white/90 ${isCompact ? 'gap-1' : ''}`}>
           <span className="rounded-full px-3 py-1 bg-white/10">🟢 {internship.mode || 'Mode NA'}</span>
           <span className="rounded-full px-3 py-1 bg-white/10">💰 {internship.stipend || 'Stipend NA'}</span>
           <span className="rounded-full px-3 py-1 bg-white/10">⏱ {internship.duration || 'Duration NA'}</span>
-          <span className="rounded-full px-3 py-1 bg-white/10">📅 {deadline}</span>
+          <span className={`rounded-full px-3 py-1 ${urgencyBadgeClass}`}>{deadlineText}</span>
         </div>
 
-        {skills.length > 0 && (
+        {!isCompact && skills.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {skills.map((skill) => (
               <span key={skill} className="rounded-full px-3 py-1 text-xs bg-white/10 text-secondary-text">
@@ -42,11 +61,11 @@ export default function InternshipCard({ internship, onOpenDetails }: Props) {
           </div>
         )}
 
-        {skills.length === 0 && (
+        {!isCompact && skills.length === 0 && (
           <div className="text-sm text-secondary-text">No skills listed.</div>
         )}
 
-        <div className="text-xs text-secondary-text">Tap card for details</div>
+        {!isCompact && <div className="text-xs text-secondary-text">Tap card for details</div>}
       </div>
 
       <div className="mt-4 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
@@ -55,7 +74,7 @@ export default function InternshipCard({ internship, onOpenDetails }: Props) {
             href={internship.registration_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold"
+            className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold hover:bg-accent/90 transition-colors"
           >
             Apply Now
           </a>

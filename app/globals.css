@@ -39,9 +39,14 @@ body {
   border: 1px solid rgba(255,255,255,0.03);
 }
 
-/* Accent gradient utility */
-.bg-accent {
-  background-image: linear-gradient(135deg, var(--pv-accent-from), var(--pv-accent-to));
+/* Hide scrollbar for scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* Small utilities for consistent spacing */
