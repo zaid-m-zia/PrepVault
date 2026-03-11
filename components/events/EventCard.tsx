@@ -1,7 +1,32 @@
 import Link from 'next/link';
-import type { Event } from '../../data/mock/events';
 
-export default function EventCard({ event }: { event: Event }) {
+export type SupabaseEvent = {
+  id: string;
+  title: string;
+  organizer: string;
+  description: string | null;
+  category: string;
+  mode: string;
+  college: string | null;
+  location: string | null;
+  event_date: string | null;
+  registration_link: string | null;
+  company?: string | null;
+  duration?: string | null;
+  stipend?: string | null;
+  skills?: string | null;
+  deadline?: string | null;
+  role?: string | null;
+  organization?: string | null;
+  eligibility?: string | null;
+  pdf_url?: string | null;
+};
+
+export default function EventCard({ event }: { event: SupabaseEvent }) {
+  const displayDate = event.event_date
+    ? new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : '—';
+
   return (
     <article className="glass rounded-xl p-6 min-h-[260px] flex flex-col justify-between border border-white/10 hover:border-white/20 transition-shadow">
       <div className="space-y-3">
@@ -9,13 +34,13 @@ export default function EventCard({ event }: { event: Event }) {
 
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Date</span>
-            <span className="text-white font-medium leading-snug">{event.date}</span>
+            <span className="text-sm text-gray-400">Organizer</span>
+            <span className="text-white font-medium leading-snug">{event.organizer}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Time</span>
-            <span className="text-white font-medium leading-snug">{event.time ?? '—'}</span>
+            <span className="text-sm text-gray-400">Date</span>
+            <span className="text-white font-medium leading-snug">{displayDate}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
@@ -24,23 +49,13 @@ export default function EventCard({ event }: { event: Event }) {
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">College</span>
-            <span className="text-white font-medium leading-snug">{event.location}</span>
+            <span className="text-sm text-gray-400">Location</span>
+            <span className="text-white font-medium leading-snug">{event.location || event.college || '—'}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
             <span className="text-sm text-gray-400">Event Type</span>
             <span className="text-white font-medium leading-snug">{event.category}</span>
-          </div>
-
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Paid</span>
-            <span className="text-white font-medium leading-snug">{event.tags?.includes('Paid') ? 'Yes' : 'No'}</span>
-          </div>
-
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Team/Solo</span>
-            <span className="text-white font-medium leading-snug">{event.tags?.includes('Team') ? 'Team' : event.tags?.includes('Solo') ? 'Solo' : '—'}</span>
           </div>
         </div>
       </div>

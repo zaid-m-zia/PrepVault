@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
-import { GraduationCap, Calendar, BookOpen, FileText, Upload, UploadCloud } from 'lucide-react'
+import { GraduationCap, Calendar, BookOpen, FileText, Upload, UploadCloud, CalendarPlus } from 'lucide-react'
 
 interface Branch {
   id: string
@@ -104,6 +104,7 @@ export default function AdminPage() {
     { id: 'modules', label: 'Modules', icon: FileText },
     { id: 'resources', label: 'Resources', icon: Upload },
     { id: 'bulk-upload', label: 'Bulk Upload', icon: UploadCloud },
+    { id: 'events', label: 'Events', icon: CalendarPlus },
   ]
 
   return (
@@ -145,6 +146,7 @@ export default function AdminPage() {
           {activeTab === 'modules' && <ModuleManager />}
           {activeTab === 'resources' && <ResourceManager />}
           {activeTab === 'bulk-upload' && <BulkUploadManager />}
+          {activeTab === 'events' && <EventManager />}
         </div>
       </div>
     </section>
@@ -1995,3 +1997,505 @@ function BulkUploadManager() {
     </motion.div>
   )
 }
+
+  function EventManager() {
+    const [events, setEvents] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+    const [fetchLoading, setFetchLoading] = useState(true)
+    const [message, setMessage] = useState('')
+
+    const [title, setTitle] = useState('')
+    const [organizer, setOrganizer] = useState('')
+    const [description, setDescription] = useState('')
+    const [category, setCategory] = useState('')
+    const [mode, setMode] = useState('')
+    const [college, setCollege] = useState('')
+    const [location, setLocation] = useState('')
+    const [eventDate, setEventDate] = useState('')
+    const [registrationLink, setRegistrationLink] = useState('')
+    const [company, setCompany] = useState('')
+    const [duration, setDuration] = useState('')
+    const [stipend, setStipend] = useState('')
+    const [skills, setSkills] = useState('')
+    const [deadline, setDeadline] = useState('')
+    const [role, setRole] = useState('')
+    const [organization, setOrganization] = useState('')
+    const [eligibility, setEligibility] = useState('')
+    const [internshipPdf, setInternshipPdf] = useState<File | null>(null)
+
+    useEffect(() => {
+      fetchEvents()
+    }, [])
+
+    useEffect(() => {
+      if (category !== 'Internship') {
+        setCompany('')
+        setDuration('')
+        setStipend('')
+        setSkills('')
+        setDeadline('')
+        setRole('')
+        setOrganization('')
+        setEligibility('')
+        setInternshipPdf(null)
+      }
+    }, [category])
+
+    const fetchEvents = async () => {
+      setFetchLoading(true)
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true })
+      setEvents(data ?? [])
+      setFetchLoading(false)
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!category) return
+
+      setLoading(true)
+      setMessage('')
+
+      let error: any = null
+
+      if (category === 'Internship') {
+        if (!role.trim() || !organization.trim() || !eligibility.trim() || !skills.trim() || !deadline || !registrationLink.trim()) {
+          setLoading(false)
+          setMessage('Please fill all required internship fields.')
+          return
+        }
+
+        if (!internshipPdf) {
+          setLoading(false)
+          setMessage('Please select a PDF file for the internship.')
+          return
+        }
+
+        const isPdf = internshipPdf.type === 'application/pdf' || internshipPdf.name.toLowerCase().endsWith('.pdf')
+        if (!isPdf) {
+          setLoading(false)
+          setMessage('Only PDF files are allowed for internship upload.')
+          return
+        }
+
+        let pdfUrl: string | null = null
+
+        const filePath = `internships/${Date.now()}-${internshipPdf.name}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('internship_docs')
+          .upload(filePath, internshipPdf, {
+            contentType: 'application/pdf',
+            upsert: false,
+          })
+
+        if (uploadError) {
+          console.error('Internship PDF upload error:', uploadError)
+          setLoading(false)
+          setMessage(uploadError.message || 'Failed to upload internship PDF.')
+          return
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('internship_docs')
+          .getPublicUrl(filePath)
+
+        pdfUrl = publicUrlData.publicUrl
+
+        const response = await supabase.from('events').insert({
+          category: 'Internship',
+          role: role.trim(),
+          organization: organization.trim(),
+          stipend: stipend.trim() || null,
+          eligibility: eligibility.trim(),
+          skills: skills.trim(),
+          deadline,
+          pdf_url: pdfUrl,
+          registration_link: registrationLink.trim(),
+          mode: mode || null,
+          duration: duration.trim() || null,
+          title: role.trim(),
+          organizer: organization.trim(),
+          description: description.trim() || null,
+          company: organization.trim(),
+          event_date: null,
+          college: college.trim() || null,
+          location: location.trim() || null,
+        })
+
+        error = response.error
+      } else {
+        if (!title.trim() || !organizer.trim() || !mode || !college.trim() || !eventDate) {
+          setLoading(false)
+          setMessage('Please fill all required event fields.')
+          return
+        }
+
+        const response = await supabase.from('events').insert({
+          title: title.trim(),
+          organizer: organizer.trim(),
+          description: description.trim() || null,
+          category,
+          mode,
+          college: college.trim(),
+          location: location.trim() || null,
+          event_date: eventDate,
+          registration_link: registrationLink.trim() || null,
+        })
+
+        error = response.error
+      }
+
+      if (error) {
+        setMessage(error.message || 'Failed to create event.')
+      } else {
+        setMessage(category === 'Internship' ? 'Internship created successfully' : 'Event created successfully!')
+        setTitle('')
+        setOrganizer('')
+        setDescription('')
+        setCategory('')
+        setMode('')
+        setCollege('')
+        setLocation('')
+        setEventDate('')
+        setRegistrationLink('')
+        setCompany('')
+        setDuration('')
+        setStipend('')
+        setSkills('')
+        setDeadline('')
+        setRole('')
+        setOrganization('')
+        setEligibility('')
+        setInternshipPdf(null)
+        fetchEvents()
+      }
+      setLoading(false)
+    }
+
+    const handleDelete = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this event?')) return
+      const { error } = await supabase.from('events').delete().eq('id', id)
+      if (!error) fetchEvents()
+    }
+
+    const CATEGORIES = ['Hackathon', 'Tech Fest', 'Competition', 'Coding Challenge', 'Conference', 'Tech Workshop', 'Internship']
+    const MODES = ['Online', 'Offline', 'Hybrid']
+    const isInternship = category === 'Internship'
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+        {/* Create Event Form */}
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-xl font-display font-bold mb-4">Manage Events</h3>
+
+          {message && (
+            <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+              <p className="text-sm">{message}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-secondary-text mb-1">Category *</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text bg-transparent"
+                  required
+                >
+                  <option value="" disabled className="bg-[#0a0e27]">Select category</option>
+                  {CATEGORIES.map((c) => <option key={c} value={c} className="bg-[#0a0e27]">{c}</option>)}
+                </select>
+              </div>
+
+              {isInternship ? (
+                <>
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Role *</label>
+                    <input
+                      type="text"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder="e.g. Software Engineer Intern"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Organization *</label>
+                    <input
+                      type="text"
+                      value={organization}
+                      onChange={(e) => setOrganization(e.target.value)}
+                      placeholder="Company / Organization"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Salary / Stipend</label>
+                    <input
+                      type="text"
+                      value={stipend}
+                      onChange={(e) => setStipend(e.target.value)}
+                      placeholder="e.g. ₹80,000/month"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Mode *</label>
+                    <select
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value)}
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text bg-transparent"
+                      required
+                    >
+                      <option value="" disabled className="bg-[#0a0e27]">Select mode</option>
+                      {MODES.map((m) => <option key={m} value={m} className="bg-[#0a0e27]">{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Duration</label>
+                    <input
+                      type="text"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="e.g. 3 Months"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Deadline to Apply *</label>
+                    <input
+                      type="date"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-secondary-text mb-1">Eligibility Criteria *</label>
+                    <input
+                      type="text"
+                      value={eligibility}
+                      onChange={(e) => setEligibility(e.target.value)}
+                      placeholder="e.g. 3rd year CS students"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-secondary-text mb-1">Skills Required *</label>
+                    <input
+                      type="text"
+                      value={skills}
+                      onChange={(e) => setSkills(e.target.value)}
+                      placeholder="e.g. DSA, Python, System Design"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">PDF Upload</label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => setInternshipPdf(e.target.files?.[0] ?? null)}
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Application Link *</label>
+                    <input
+                      type="url"
+                      value={registrationLink}
+                      onChange={(e) => setRegistrationLink(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="City / Remote"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">College (optional)</label>
+                    <input
+                      type="text"
+                      value={college}
+                      onChange={(e) => setCollege(e.target.value)}
+                      placeholder="Used for college filters"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Title *</label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Event title"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Organizer *</label>
+                    <input
+                      type="text"
+                      value={organizer}
+                      onChange={(e) => setOrganizer(e.target.value)}
+                      placeholder="Organizing team or club"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Mode *</label>
+                    <select
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value)}
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text bg-transparent"
+                      required
+                    >
+                      <option value="" disabled className="bg-[#0a0e27]">Select mode</option>
+                      {MODES.map((m) => <option key={m} value={m} className="bg-[#0a0e27]">{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">College / Institution *</label>
+                    <input
+                      type="text"
+                      value={college}
+                      onChange={(e) => setCollege(e.target.value)}
+                      placeholder="e.g. Amity University"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Location / Venue</label>
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="City, venue, or 'Online'"
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Event Date *</label>
+                    <input
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary-text mb-1">Registration Link</label>
+                    <input
+                      type="url"
+                      value={registrationLink}
+                      onChange={(e) => setRegistrationLink(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!isInternship && (
+              <div>
+                <label className="block text-sm text-secondary-text mb-1">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Brief event description..."
+                  rows={3}
+                  className="w-full px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text resize-none"
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {loading ? 'Creating...' : isInternship ? 'Create Internship' : 'Create Event'}
+            </button>
+          </form>
+        </div>
+
+        {/* Events List */}
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-xl font-display font-bold mb-4">Existing Events</h3>
+          {fetchLoading ? (
+            <div className="animate-pulse space-y-3">
+              {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-white/10 rounded-lg" />)}
+            </div>
+          ) : events.length === 0 ? (
+            <p className="text-secondary-text text-center py-8">No events created yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {events.map((ev) => (
+                <div key={ev.id} className="flex items-center justify-between p-4 glass border border-white/10 rounded-lg">
+                  <div>
+                    <p className="font-semibold">{ev.title}</p>
+                    <p className="text-sm text-secondary-text">{ev.organizer} · {ev.mode} · {ev.category}</p>
+                    <p className="text-xs text-secondary-text">
+                      {ev.category === 'Internship'
+                        ? `Deadline: ${ev.deadline ? new Date(ev.deadline).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}`
+                        : (ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(ev.id)}
+                    className="px-3 py-1 text-sm bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    )
+  }
