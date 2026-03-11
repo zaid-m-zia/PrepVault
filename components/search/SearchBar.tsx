@@ -51,6 +51,21 @@ export default function SearchBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  function hasLearningIntent(input: string): boolean {
+    const learningWords = [
+      'learn',
+      'study',
+      'teach',
+      'roadmap',
+      'prepare',
+      'start',
+      'guide',
+      'path',
+    ]
+
+    return learningWords.some((word) => input.toLowerCase().includes(word))
+  }
+
   function cleanSearchQuery(input: string): string {
     const fillerWords = [
       'i',
@@ -99,6 +114,7 @@ export default function SearchBar() {
     if (!rawQuery) return
 
     if (category === 'resources') {
+      const learningIntent = hasLearningIntent(rawQuery)
       const cleanedInput = cleanSearchQuery(rawQuery)
       const searchQueryText = cleanedInput || rawQuery
       const normalizedQuery = normalizeQuery(searchQueryText)
@@ -199,16 +215,17 @@ export default function SearchBar() {
         }
 
         const encodedQuery = encodeURIComponent(cleanedInput || normalizedQuery)
+        const intentQuery = learningIntent ? '&intent=study' : ''
 
         // Priority: module > subject > resource title > resource description.
         if (modules.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
+          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}${intentQuery}`)
         } else if (selectedSubject) {
-          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}`)
+          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}${intentQuery}`)
         } else if (resourcesByTitle.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}`)
+          router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}${intentQuery}`)
         } else if (resourcesByDescription.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}`)
+          router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}${intentQuery}`)
         } else {
           router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
         }

@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { motion } from 'framer-motion'
 import { Play } from 'lucide-react'
 import ResourceViewer from '../../components/ResourceViewer'
+import StudyPath from '../../components/resources/StudyPath'
 
 interface Branch {
   id: string
@@ -28,6 +29,7 @@ interface Module {
   id: string
   subject_id: string
   module_name: string
+  created_at?: string
 }
 
 interface Resource {
@@ -39,6 +41,36 @@ interface Resource {
   file_url: string | null
   youtube_link: string | null
   created_at: string
+}
+
+type StudyPathStep = {
+  id: string
+  title: string
+  resourceGroups: Array<{
+    type: string
+    items: Array<{
+      id: string
+      title: string
+      resource_type: string
+    }>
+  }>
+}
+
+const studyPathTypeOrder = ['Notes', 'Playlist', 'Assignment', 'PYQ']
+
+function groupResourcesByType(resources: Resource[]): StudyPathStep['resourceGroups'] {
+  return studyPathTypeOrder
+    .map((type) => ({
+      type,
+      items: resources
+        .filter((resource) => resource.resource_type === type)
+        .map((resource) => ({
+          id: resource.id,
+          title: resource.title,
+          resource_type: resource.resource_type,
+        })),
+    }))
+    .filter((group) => group.items.length > 0)
 }
 
 // Create Supabase client outside component to prevent recreation
@@ -69,6 +101,7 @@ export default function ResourcesPage() {
 function ResourcesPageContent() {
   const searchParams = useSearchParams()
   const searchQueryText = searchParams.get('q')
+  const learningIntent = searchParams.get('intent') === 'study'
   const [branches, setBranches] = useState<Branch[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -89,6 +122,10 @@ function ResourcesPageContent() {
   const [viewerOpen, setViewerOpen] = useState(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
   const [smartSearchMessage, setSmartSearchMessage] = useState<string | null>(null)
+  const [studyPathTitle, setStudyPathTitle] = useState('')
+  const [studyPathSteps, setStudyPathSteps] = useState<StudyPathStep[]>([])
+  const [studyPathResources, setStudyPathResources] = useState<Record<string, Resource>>({})
+  const [loadingStudyPath, setLoadingStudyPath] = useState(false)
 
   // Load branches on mount
   useEffect(() => {
@@ -240,6 +277,126 @@ function ResourcesPageContent() {
     fetchResources()
   }, [selectedModule])
 
+  useEffect(() => {
+    if (!learningIntent) {
+      setStudyPathTitle('')
+      setStudyPathSteps([])
+      setStudyPathResources({})
+      setLoadingStudyPath(false)
+      return
+    }
+
+    async function fetchStudyPath() {
+      try {
+        setLoadingStudyPath(true)
+
+        if (selectedModule) {
+          const [{ data: moduleData, error: moduleError }, { data: moduleResources, error: resourcesError }] = await Promise.all([
+            supabase
+              .from('modules')
+              .select('id, module_name')
+              .eq('id', selectedModule)
+              .single(),
+            supabase
+              .from('resources')
+              .select('*')
+              .eq('module_id', selectedModule)
+              .order('created_at', { ascending: false }),
+          ])
+
+          if (moduleError || !moduleData) throw moduleError
+          if (resourcesError) throw resourcesError
+
+          const resolvedResources = (moduleResources ?? []) as Resource[]
+          setStudyPathTitle(moduleData.module_name)
+          setStudyPathSteps([
+            {
+              id: moduleData.id,
+              title: moduleData.module_name,
+              resourceGroups: groupResourcesByType(resolvedResources),
+            },
+          ])
+          setStudyPathResources(
+            resolvedResources.reduce<Record<string, Resource>>((accumulator, resource) => {
+              accumulator[resource.id] = resource
+              return accumulator
+            }, {})
+          )
+          return
+        }
+
+        if (selectedSubject) {
+          const [{ data: subjectData, error: subjectError }, { data: subjectModules, error: modulesError }] = await Promise.all([
+            supabase
+              .from('subjects')
+              .select('id, name')
+              .eq('id', selectedSubject)
+              .single(),
+            supabase
+              .from('modules')
+              .select('id, module_name, created_at')
+              .eq('subject_id', selectedSubject)
+              .order('created_at', { ascending: true }),
+          ])
+
+          if (subjectError || !subjectData) throw subjectError
+          if (modulesError) throw modulesError
+
+          const orderedModules = (subjectModules ?? []) as Module[]
+
+          if (orderedModules.length === 0) {
+            setStudyPathTitle(subjectData.name)
+            setStudyPathSteps([])
+            setStudyPathResources({})
+            return
+          }
+
+          const moduleIds = orderedModules.map((module) => module.id)
+          const { data: subjectResources, error: resourcesError } = await supabase
+            .from('resources')
+            .select('*')
+            .in('module_id', moduleIds)
+            .order('created_at', { ascending: false })
+
+          if (resourcesError) throw resourcesError
+
+          const resolvedResources = (subjectResources ?? []) as Resource[]
+
+          setStudyPathTitle(subjectData.name)
+          setStudyPathSteps(
+            orderedModules.map((module) => ({
+              id: module.id,
+              title: module.module_name,
+              resourceGroups: groupResourcesByType(
+                resolvedResources.filter((resource) => resource.module_id === module.id)
+              ),
+            }))
+          )
+          setStudyPathResources(
+            resolvedResources.reduce<Record<string, Resource>>((accumulator, resource) => {
+              accumulator[resource.id] = resource
+              return accumulator
+            }, {})
+          )
+          return
+        }
+
+        setStudyPathTitle('')
+        setStudyPathSteps([])
+        setStudyPathResources({})
+      } catch (studyPathError) {
+        console.error('Error generating study path:', studyPathError)
+        setStudyPathTitle('')
+        setStudyPathSteps([])
+        setStudyPathResources({})
+      } finally {
+        setLoadingStudyPath(false)
+      }
+    }
+
+    fetchStudyPath()
+  }, [learningIntent, selectedModule, selectedSubject])
+
   // Auto-select hierarchy from smart search query params.
   useEffect(() => {
     const subjectId = searchParams.get('subject')
@@ -365,6 +522,15 @@ function ResourcesPageContent() {
     setSelectedResource(null)
   }, [])
 
+  const openStudyPathResource = useCallback((resourceId: string) => {
+    const resource = studyPathResources[resourceId]
+    if (!resource) return
+
+    setSelectedResource(resource)
+    setViewerOpen(true)
+    setActiveTab(resource.resource_type)
+  }, [studyPathResources])
+
   if (loading) {
     return (
       <section className="py-12 px-6">
@@ -484,6 +650,16 @@ function ResourcesPageContent() {
             </div>
           </div>
         </motion.div>
+
+        {learningIntent && (selectedSubject || selectedModule) && (
+          <StudyPath
+            title={studyPathTitle || 'Your Learning Roadmap'}
+            query={searchQueryText}
+            steps={studyPathSteps}
+            loading={loadingStudyPath}
+            onOpenResource={openStudyPathResource}
+          />
+        )}
 
         {/* Resource Type Tabs */}
         {selectedModule && (
