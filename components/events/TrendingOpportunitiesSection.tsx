@@ -20,7 +20,7 @@ export default function TrendingOpportunitiesSection({ opportunities, onOpenDeta
       </div>
       <p className="text-sm text-secondary-text mb-4">Urgent internships with closest deadlines</p>
 
-      <div className="overflow-x-auto scrollbar-hide">
+      <div className="overflow-x-auto scrollbar-hide px-2 md:px-4 overflow-visible">
         <div className="flex gap-4 pb-4 min-w-full">
           {opportunities.slice(0, 5).map((opportunity, index) => (
             <motion.div
@@ -28,7 +28,7 @@ export default function TrendingOpportunitiesSection({ opportunities, onOpenDeta
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="flex-shrink-0 w-80"
+              className="flex-shrink-0 w-80 overflow-visible flex justify-center"
             >
               <InternshipCard internship={opportunity} onOpenDetails={onOpenDetails} isCompact />
             </motion.div>

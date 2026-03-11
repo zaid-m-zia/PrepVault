@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { Play } from 'lucide-react'
 import ResourceViewer from '../../components/ResourceViewer'
 import StudyPath from '../../components/resources/StudyPath'
+import { buttonClasses } from '../../components/ui/Button'
 
 interface Branch {
   id: string
@@ -785,7 +786,7 @@ function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: () => 
         <button
           type="button"
           onClick={onOpen}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+          className={buttonClasses({ size: 'sm' })}
         >
           <Play className="w-4 h-4" />
           Open Resource

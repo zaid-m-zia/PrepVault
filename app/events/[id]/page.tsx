@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import { buttonClasses } from '../../../components/ui/Button';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,9 +76,9 @@ export default async function EventDetailPage({ params }: { params: { id: string
 
               <div className="mt-4">
                 {event.registration_link ? (
-                  <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">Register</a>
+                  <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className={buttonClasses({ size: 'sm' })}>Register</a>
                 ) : (
-                  <button disabled className="inline-flex items-center px-4 py-2 rounded-xl bg-white/6 text-secondary-text">Registration link not available</button>
+                  <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>Registration link not available</button>
                 )}
               </div>
             </div>

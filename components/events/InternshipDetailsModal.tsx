@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { SupabaseEvent } from './EventCard';
+import { buttonClasses } from '../ui/Button';
 
 type Props = {
   internship: SupabaseEvent | null;
@@ -93,16 +94,16 @@ export default function InternshipDetailsModal({ internship, open, onClose }: Pr
 
         <div className="mt-6 flex flex-wrap gap-3 justify-end">
           {internship.pdf_url && (
-            <a href={internship.pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 rounded-xl glass border border-white/10 text-primary-text hover:border-white/20 transition-colors">
+            <a href={internship.pdf_url} target="_blank" rel="noopener noreferrer" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
               View PDF
             </a>
           )}
           {internship.registration_link ? (
-            <a href={internship.registration_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">
+            <a href={internship.registration_link} target="_blank" rel="noopener noreferrer" className={buttonClasses({ size: 'sm' })}>
               Apply Now
             </a>
           ) : (
-            <button disabled className="inline-flex items-center px-4 py-2 rounded-xl bg-white/6 text-secondary-text">Apply link unavailable</button>
+            <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>Apply link unavailable</button>
           )}
         </div>
       </div>

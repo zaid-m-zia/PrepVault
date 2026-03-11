@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from '../../lib/supabaseClient'
+import Button from '../../components/ui/Button'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -187,7 +188,7 @@ export default function LoginPage() {
           {message && <div className="text-red-400 text-sm mt-1 mb-3">{message}</div>}
 
           <div className="flex gap-3">
-            <button type="submit" disabled={loading} className="bg-accent text-[#0a0e27] px-4 py-2 rounded-md font-semibold">{loading ? (isSignup ? 'Registering...' : 'Signing in...') : (isSignup ? 'Sign up' : 'Login')}</button>
+            <Button type="submit" disabled={loading} size="sm" className="rounded-md px-4 py-2">{loading ? (isSignup ? 'Registering...' : 'Signing in...') : (isSignup ? 'Sign up' : 'Login')}</Button>
             {!isSignup && (
               <button type="button" onClick={() => { setIsSignup(true); setMessage(null); }} className="glass px-4 py-2 rounded-md border">Register</button>
             )}

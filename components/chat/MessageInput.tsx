@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { buttonClasses } from '../ui/Button'
 
 type MessageInputProps = {
   onSendMessage: (content: string) => void
@@ -54,7 +55,7 @@ export default function MessageInput({
           disabled={!message.trim() || sending || disabled}
           whileHover={!disabled && !sending ? { scale: 1.05 } : {}}
           whileTap={!disabled && !sending ? { scale: 0.95 } : {}}
-          className="px-6 py-3 glass border border-cyan-400/50 rounded-lg font-semibold bg-gradient-to-r from-cyan-500/30 to-cyan-600/20 hover:from-cyan-500/50 hover:to-cyan-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          className={buttonClasses({ size: 'md', className: 'px-6 py-3 rounded-lg text-sm' })}
         >
           {sending ? 'Sending...' : 'Send'}
         </motion.button>

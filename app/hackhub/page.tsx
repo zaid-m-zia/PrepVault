@@ -5,6 +5,7 @@ import TeamCard from '../../components/hackhub/TeamCard';
 import UserCard from '../../components/hackhub/UserCard';
 import { mockTeams } from '../../data/mock/teams';
 import { mockUsers } from '../../data/mock/users';
+import Button from '../../components/ui/Button';
 
 export default function HackHubPage() {
   const [tab, setTab] = useState<'teams' | 'users' | 'create'>('teams');
@@ -19,9 +20,9 @@ export default function HackHubPage() {
 
         <div className="mb-6">
           <div className="inline-flex rounded-full bg-white/3 p-1">
-            <button onClick={() => setTab('teams')} className={`px-4 py-2 rounded-full text-sm ${tab === 'teams' ? 'bg-accent text-[#0a0e27]' : 'text-secondary-text'}`}>Find Teams</button>
-            <button onClick={() => setTab('users')} className={`px-4 py-2 rounded-full text-sm ${tab === 'users' ? 'bg-accent text-[#0a0e27]' : 'text-secondary-text'}`}>Find Teammates</button>
-            <button onClick={() => setTab('create')} className={`px-4 py-2 rounded-full text-sm ${tab === 'create' ? 'bg-accent text-[#0a0e27]' : 'text-secondary-text'}`}>Create Team</button>
+            <button onClick={() => setTab('teams')} className={`px-4 py-2 rounded-full text-sm ${tab === 'teams' ? 'bg-accent text-white font-semibold' : 'text-secondary-text'}`}>Find Teams</button>
+            <button onClick={() => setTab('users')} className={`px-4 py-2 rounded-full text-sm ${tab === 'users' ? 'bg-accent text-white font-semibold' : 'text-secondary-text'}`}>Find Teammates</button>
+            <button onClick={() => setTab('create')} className={`px-4 py-2 rounded-full text-sm ${tab === 'create' ? 'bg-accent text-white font-semibold' : 'text-secondary-text'}`}>Create Team</button>
           </div>
         </div>
 
@@ -99,7 +100,7 @@ function CreateTeamForm() {
         </div>
 
         <div className="pt-2">
-          <button type="submit" className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">Create Team</button>
+          <Button type="submit" size="sm">Create Team</Button>
         </div>
       </div>
     </form>

@@ -276,7 +276,7 @@ export default function SearchBar() {
                     onClick={() => setCategory(cat.id)}
                     className={`px-3 py-2 rounded-md text-xs font-medium transition-colors flex-1 ${
                       category === cat.id
-                        ? 'bg-accent text-[#0a0e27]'
+                        ? 'bg-accent text-white'
                         : 'bg-white/5 text-secondary-text hover:bg-white/10'
                     }`}
                   >

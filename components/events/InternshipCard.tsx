@@ -2,6 +2,7 @@
 
 import type { SupabaseEvent } from './EventCard';
 import { getDeadlineText, getDaysRemaining, getUrgencyLevel, getUrgencyBadgeClass, isNewOpportunity } from '../../lib/opportunityUtils';
+import { buttonClasses } from '../ui/Button';
 
 type Props = {
   internship: SupabaseEvent;
@@ -31,7 +32,7 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
   return (
     <article
       onClick={() => onOpenDetails(internship)}
-      className={`glass rounded-xl p-6 ${minHeightClass} flex flex-col justify-between border border-white/10 hover:border-white/20 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer`}
+      className={`relative transform-gpu origin-center will-change-transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl glass rounded-xl p-6 ${minHeightClass} w-full max-w-xl flex flex-col justify-between border border-white/20 hover:border-white/30 cursor-pointer`}
     >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
@@ -74,12 +75,12 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
             href={internship.registration_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold hover:bg-accent/90 transition-colors"
+            className={buttonClasses({ size: 'sm' })}
           >
             Apply Now
           </a>
         ) : (
-          <button disabled className="inline-flex items-center px-4 py-2 rounded-xl bg-white/6 text-secondary-text">
+          <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>
             Apply link unavailable
           </button>
         )}

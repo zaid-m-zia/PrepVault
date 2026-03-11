@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from '../../lib/supabaseClient'
 import { motion } from 'framer-motion'
+import Button from '../../components/ui/Button'
 
 type Notification = {
   id: string
@@ -172,12 +173,13 @@ export default function NotificationsPage() {
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
             <h1 className="text-2xl font-display font-bold mb-4">Please Log In</h1>
             <p className="text-secondary-text mb-6">You need to be logged in to view notifications.</p>
-            <button
+            <Button
               onClick={() => router.push('/login')}
-              className="px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+              size="sm"
+              className="px-6 py-2 rounded-md"
             >
               Go to Login
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -228,7 +230,7 @@ export default function NotificationsPage() {
                             e.stopPropagation()
                             acceptFollowRequest(notification.id, followRequestData.senderId)
                           }}
-                          className="px-4 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all text-sm"
+                          className="px-4 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all text-sm"
                         >
                           Accept
                         </button>

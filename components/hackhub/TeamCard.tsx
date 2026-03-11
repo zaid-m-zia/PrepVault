@@ -1,5 +1,5 @@
 import type { Team } from '../../data/mock/teams';
-import Link from 'next/link';
+import Button from '../ui/Button';
 
 export default function TeamCard({ team }: { team: Team }) {
   return (
@@ -22,7 +22,7 @@ export default function TeamCard({ team }: { team: Team }) {
 
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-secondary-text">Created by <span className="text-white font-medium">{team.createdBy}</span></div>
-          <button className="inline-flex items-center px-3 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">Join Team</button>
+          <Button size="sm">Join Team</Button>
         </div>
       </div>
     </article>

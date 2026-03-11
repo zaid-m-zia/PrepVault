@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import FollowButton from '../../../components/profile/FollowButton'
 import MessageButton from '../../../components/profile/MessageButton'
 import EditProfileForm from '../../../components/profile/EditProfileForm'
+import Button from '../../../components/ui/Button'
 import { motion } from 'framer-motion'
 
 export default function UserProfilePage({ params }: { params: { username: string } }) {
@@ -112,12 +113,13 @@ export default function UserProfilePage({ params }: { params: { username: string
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
             <h1 className="text-2xl font-display font-bold mb-4">Profile Not Found</h1>
             <p className="text-secondary-text mb-6">The user you're looking for doesn't exist.</p>
-            <button
+            <Button
               onClick={() => router.push('/')}
-              className="px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+              size="sm"
+              className="px-6 py-2 rounded-md"
             >
               Go Home
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -209,7 +211,7 @@ export default function UserProfilePage({ params }: { params: { username: string
               {isOwnProfile && !editing && (
                 <motion.button
                   onClick={() => setEditing(true)}
-                  className="mt-4 px-6 py-2 rounded-md bg-accent text-[#0a0e27] font-semibold hover:shadow-lg transition-all"
+                  className="mt-4 px-6 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { buttonClasses } from '../components/ui/Button';
 // HomePage component (server-side)
 // Purpose: Landing page with hero section introducing PrepVault and call-to-action button
 export default function HomePage() {
@@ -22,7 +23,7 @@ export default function HomePage() {
 
           <div className="mt-8 flex justify-center">
             {/* Client-side navigation using Next.js Link (styles preserved) */}
-            <Link href="/resources" className="inline-block rounded-lg px-6 py-3 bg-cta text-[#0a0e27] font-semibold shadow-glow hover:opacity-95">
+            <Link href="/resources" className={buttonClasses({ className: 'rounded-lg px-6 py-3' })}>
               Explore Resources
             </Link>
           </div>

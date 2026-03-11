@@ -118,7 +118,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
       className={`px-6 py-2 rounded-md font-semibold transition-all ${
         isAlreadyFollowing
           ? 'glass border border-white/10 text-secondary-text hover:border-white/20'
-          : 'bg-accent text-[#0a0e27] hover:shadow-lg'
+          : 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white hover:shadow-lg'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {loading ? 'Loading...' : isAlreadyFollowing ? (isFollowed ? 'Following' : 'Requested') : 'Follow'}

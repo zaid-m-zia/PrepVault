@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import { motion } from 'framer-motion'
+import Button from '../ui/Button'
 
 type EditProfileFormProps = {
   profile: any
@@ -114,15 +115,13 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
         </div>
 
         <div className="flex gap-4">
-          <motion.button
+          <Button
             type="submit"
             disabled={loading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 bg-accent text-[#0a0e27] font-semibold rounded-lg hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 rounded-lg"
           >
             {loading ? 'Saving...' : 'Save Changes'}
-          </motion.button>
+          </Button>
 
           <motion.button
             type="button"

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { buttonClasses } from './ui/Button'
 
 type Message = {
   id: string
@@ -258,7 +259,7 @@ export default function PrepVaultAI({ isOpen, onClose }: PrepVaultAIProps) {
                 <button
                   onClick={handleSendMessage}
                   disabled={!input.trim() || loading}
-                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className={buttonClasses({ size: 'md', className: 'px-6 py-3 rounded-lg' })}
                 >
                   <Send className="w-4 h-4" />
                 </button>

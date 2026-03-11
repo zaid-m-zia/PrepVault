@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { Download, ExternalLink, X } from 'lucide-react'
+import { buttonClasses } from './ui/Button'
 
 interface ViewerResource {
   id: string
@@ -106,7 +107,7 @@ export default function ResourceViewer({ open, onClose, resource }: ResourceView
               <a
                 href={resource.file_url}
                 download
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-sm font-medium"
+                className={buttonClasses({ size: 'sm' })}
               >
                 <Download className="w-4 h-4" />
                 Download
@@ -118,7 +119,7 @@ export default function ResourceViewer({ open, onClose, resource }: ResourceView
                 href={resource.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg glass border border-white/10 hover:border-cyan-400/50 transition-all text-sm font-medium"
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
               >
                 <ExternalLink className="w-4 h-4" />
                 Open in new tab
@@ -128,7 +129,7 @@ export default function ResourceViewer({ open, onClose, resource }: ResourceView
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg glass border border-white/10 hover:border-cyan-400/50 text-sm font-medium"
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
             >
               Close
             </button>

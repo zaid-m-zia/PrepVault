@@ -125,7 +125,7 @@ export default function EventsPage() {
             <span className="text-sm text-secondary-text mr-2">Mode:</span>
             <div className="flex gap-2 flex-wrap">
               {MODES.map((m) => (
-                <button key={m} onClick={() => toggle(m, selectedMode, setSelectedMode)} className={`px-3 py-1 rounded-full text-sm ${selectedMode === m ? 'bg-accent text-[#0a0e27]' : 'glass text-secondary-text'}`}>
+                <button key={m} onClick={() => toggle(m, selectedMode, setSelectedMode)} className={`px-3 py-1 rounded-full text-sm ${selectedMode === m ? 'bg-accent text-white' : 'glass text-secondary-text'}`}>
                   {m}
                 </button>
               ))}
@@ -136,7 +136,7 @@ export default function EventsPage() {
             <span className="text-sm text-secondary-text mr-2">Category:</span>
             <div className="flex gap-2 flex-wrap">
               {CATEGORIES.map((c) => (
-                <button key={c} onClick={() => toggle(c, selectedCategory, setSelectedCategory)} className={`px-3 py-1 rounded-full text-sm ${selectedCategory === c ? 'bg-accent text-[#0a0e27]' : 'glass text-secondary-text'}`}>
+                <button key={c} onClick={() => toggle(c, selectedCategory, setSelectedCategory)} className={`px-3 py-1 rounded-full text-sm ${selectedCategory === c ? 'bg-accent text-white' : 'glass text-secondary-text'}`}>
                   {c}
                 </button>
               ))}
@@ -147,7 +147,7 @@ export default function EventsPage() {
             <span className="text-sm text-secondary-text mr-2">College:</span>
             <div className="flex gap-2 flex-wrap">
               {colleges.map((college) => (
-                <button key={college} onClick={() => toggle(college, selectedCollege, setSelectedCollege)} className={`px-3 py-1 rounded-full text-sm ${selectedCollege === college ? 'bg-accent text-[#0a0e27]' : 'glass text-secondary-text'}`}>
+                <button key={college} onClick={() => toggle(college, selectedCollege, setSelectedCollege)} className={`px-3 py-1 rounded-full text-sm ${selectedCollege === college ? 'bg-accent text-white' : 'glass text-secondary-text'}`}>
                   {college}
                 </button>
               ))}
@@ -160,13 +160,15 @@ export default function EventsPage() {
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 md:px-4 overflow-visible">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="glass rounded-xl p-6 min-h-[260px] border border-white/10 animate-pulse">
-                <div className="h-5 bg-white/10 rounded mb-4 w-3/4" />
-                <div className="space-y-3">
-                  <div className="h-4 bg-white/10 rounded w-1/2" />
-                  <div className="h-4 bg-white/10 rounded w-2/3" />
+              <div key={i} className="overflow-visible flex justify-center">
+                <div className="glass rounded-xl p-6 min-h-[260px] border border-white/10 animate-pulse w-full">
+                  <div className="h-5 bg-white/10 rounded mb-4 w-3/4" />
+                  <div className="space-y-3">
+                    <div className="h-4 bg-white/10 rounded w-1/2" />
+                    <div className="h-4 bg-white/10 rounded w-2/3" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -179,9 +181,11 @@ export default function EventsPage() {
                 <p className="mt-1 text-sm text-secondary-text">Discover internship opportunities curated from PrepVault.</p>
               </header>
               {featuredInternships.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 md:px-4 overflow-visible">
                   {featuredInternships.map((internship) => (
-                    <InternshipCard key={internship.id} internship={internship} onOpenDetails={openInternshipDetails} />
+                    <div key={internship.id} className="overflow-visible flex justify-center">
+                      <InternshipCard internship={internship} onOpenDetails={openInternshipDetails} />
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -194,9 +198,11 @@ export default function EventsPage() {
                 <h2 className="text-xl font-display font-semibold">Upcoming Opportunities</h2>
                 <p className="mt-1 text-sm text-secondary-text">Events, workshops, hackathons, and other opportunities.</p>
               </header>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 md:px-4 overflow-visible">
                 {otherOpportunities.map((e) => (
-                <EventCard key={e.id} event={e} />
+                <div key={e.id} className="overflow-visible flex justify-center">
+                  <EventCard event={e} />
+                </div>
               ))}
             </div>
               {otherOpportunities.length === 0 && (

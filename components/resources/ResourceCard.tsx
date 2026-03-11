@@ -2,6 +2,7 @@
 // Purpose: Show resource title, type, exam relevance, description and external link button
 
 import type { Resource } from '../../data/mock/resources';
+import { buttonClasses } from '../ui/Button';
 
 export default function ResourceCard({ resource }: { resource: Resource }) {
   return (
@@ -21,7 +22,7 @@ export default function ResourceCard({ resource }: { resource: Resource }) {
             href={resource.url}
             role="button"
             aria-label={`Open ${resource.title}`}
-            className="ml-4 inline-flex items-center px-3 py-2 rounded-md bg-cta text-[#0a0e27] font-semibold focus:outline-none focus:ring-2 focus:ring-white/10"
+            className={buttonClasses({ size: 'sm', className: 'ml-4 rounded-md' })}
             >
             Open
           </a>

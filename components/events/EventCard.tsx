@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { isNewOpportunity } from '../../lib/opportunityUtils';
+import { buttonClasses } from '../ui/Button';
 
 export type SupabaseEvent = {
   id: string;
@@ -32,7 +33,7 @@ export default function EventCard({ event }: { event: SupabaseEvent }) {
   const isNew = isNewOpportunity(event.created_at);
 
   return (
-    <article className="glass rounded-xl p-6 min-h-[260px] flex flex-col justify-between border border-white/10 hover:border-white/20 hover:shadow-lg hover:scale-105 transition-all duration-300">
+    <article className="relative transform-gpu origin-center will-change-transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl glass rounded-xl p-6 min-h-[260px] w-full max-w-xl flex flex-col justify-between border border-white/20 hover:border-white/30">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-lg font-display font-semibold leading-snug flex-1">{event.title}</h3>
@@ -72,7 +73,7 @@ export default function EventCard({ event }: { event: SupabaseEvent }) {
       </div>
 
       <div className="mt-4 flex items-center justify-end">
-        <Link href={`/events/${event.id}`} className="inline-flex items-center px-4 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold hover:bg-accent/90 transition-colors">View Details</Link>
+        <Link href={`/events/${event.id}`} className={buttonClasses({ size: 'sm' })}>View Details</Link>
       </div>
     </article>
   );

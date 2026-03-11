@@ -1,4 +1,5 @@
 import type { User } from '../../data/mock/users';
+import Button from '../ui/Button';
 
 export default function UserCard({ user }: { user: User }) {
   return (
@@ -18,7 +19,7 @@ export default function UserCard({ user }: { user: User }) {
         </div>
 
         <div className="mt-4 flex items-center justify-end">
-          <button className="inline-flex items-center px-3 py-2 rounded-xl bg-accent text-[#0a0e27] font-semibold">Connect</button>
+          <Button size="sm">Connect</Button>
         </div>
       </div>
     </article>

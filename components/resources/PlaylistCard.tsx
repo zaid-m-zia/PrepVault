@@ -1,6 +1,8 @@
 // PlaylistCard — Present playlist information (YouTube only for now)
 // Purpose: Show playlist title, platform badge, coverage note, exam relevance and external link
 
+import { buttonClasses } from '../ui/Button';
+
 export default function PlaylistCard({ playlist }: { playlist: { id: string; title: string; platform?: string; coverage?: string; examRelevance: string; url: string } }) {
   return (
     <article className="group rounded-lg p-4 border glass transform-gpu transition-transform duration-150 hover:shadow-lg hover:scale-105 hover:-translate-y-1 z-0 hover:z-10" style={{ borderColor: 'rgba(246,72,153,0.06)' }}>
@@ -20,7 +22,7 @@ export default function PlaylistCard({ playlist }: { playlist: { id: string; tit
         </div>
 
         <div className="flex-shrink-0 flex items-center">
-          <a href={playlist.url} role="button" aria-label={`Open ${playlist.title}`} className="ml-4 inline-flex items-center px-3 py-2 rounded-md bg-gradient-to-r from-[#ff9a9e] to-[#f6f0ff] text-[#0a0e27] font-semibold">Open</a>
+          <a href={playlist.url} role="button" aria-label={`Open ${playlist.title}`} className={buttonClasses({ size: 'sm', className: 'ml-4 rounded-md' })}>Open</a>
         </div>
       </div>
     </article>
