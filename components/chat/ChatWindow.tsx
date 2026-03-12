@@ -145,18 +145,18 @@ export default function ChatWindow({
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-secondary-text">Loading chat...</div>
+        <div className="text-slate-500 dark:text-slate-400">Loading chat...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex flex-1 flex-col bg-white shadow-sm dark:bg-slate-900 dark:shadow-none">
       {/* Header */}
-      <div className="border-b border-white/10 p-6 bg-black/20">
+      <div className="border-b border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg glass border border-white/10 flex items-center justify-center text-lg font-bold">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white text-lg font-bold text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-950 dark:text-slate-200 dark:shadow-none">
               {(selectedUser?.full_name || selectedUser?.username)
                 ?.split(' ')
                 .map((n: string) => n[0])
@@ -166,15 +166,15 @@ export default function ChatWindow({
             <div>
               <Link
                 href={`/profile/${selectedUser?.username}`}
-                className="font-semibold hover:text-cyan-400 transition-colors"
+                className="font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
               >
                 {selectedUser?.full_name || selectedUser?.username}
               </Link>
-              <p className="text-sm text-secondary-text">@{selectedUser?.username}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">@{selectedUser?.username}</p>
             </div>
           </div>
           {!isFollowing && (
-            <div className="text-xs glass px-3 py-1 rounded border border-yellow-400/30 text-yellow-300">
+            <div className="rounded border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 dark:border-yellow-400/30 dark:bg-transparent dark:text-yellow-300">
               Not following
             </div>
           )}
@@ -182,9 +182,9 @@ export default function ChatWindow({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-purple-500/5">
+      <div className="flex-1 space-y-4 overflow-y-auto bg-white p-6 dark:bg-slate-900">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-secondary-text">
+          <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
@@ -207,7 +207,7 @@ export default function ChatWindow({
       )}
 
       {/* Input Area */}
-      <div className="border-t border-white/10 p-6 bg-black/20">
+      <div className="border-t border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
         <MessageInput
           onSendMessage={handleSendMessage}
           disabled={!isFollowing && messageCount >= 2}

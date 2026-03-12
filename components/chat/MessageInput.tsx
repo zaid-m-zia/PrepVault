@@ -41,14 +41,14 @@ export default function MessageInput({
           {disabledReason}
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex gap-3 rounded-xl border border-gray-200 bg-gray-100 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:shadow-none">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={disabled ? 'Follow to continue messaging' : 'Type a message...'}
           disabled={disabled || sending}
-          className="flex-1 rounded-lg px-4 py-3 border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+          className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500"
         />
         <motion.button
           type="submit"

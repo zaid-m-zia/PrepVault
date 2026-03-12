@@ -104,7 +104,7 @@ function ChatContent() {
   if (loading) {
     return (
       <section className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="text-secondary-text">Loading chat...</div>
+        <div className="text-slate-500 dark:text-slate-400">Loading chat...</div>
       </section>
     )
   }
@@ -120,9 +120,9 @@ function ChatContent() {
   if (!currentUser) {
     return (
       <section className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="glass rounded-xl p-8 border border-white/10 text-center max-w-md mx-4">
-          <h1 className="text-2xl font-display font-bold mb-4">Please Log In</h1>
-          <p className="text-secondary-text mb-6">You need to be logged in to access chat.</p>
+        <div className="glass rounded-xl p-8 border border-gray-200 dark:border-white/10 text-center max-w-md mx-4 shadow-sm dark:shadow-none">
+          <h1 className="text-2xl font-display font-bold mb-4 text-slate-900 dark:text-slate-100">Please Log In</h1>
+          <p className="mb-6 text-slate-500 dark:text-slate-400">You need to be logged in to access chat.</p>
           <Button
             onClick={() => window.location.href = '/login'}
             size="sm"
@@ -136,7 +136,7 @@ function ChatContent() {
   }
 
   return (
-    <section className="h-[calc(100vh-120px)] flex bg-gradient-to-br from-black/40 to-purple-900/10 border-t border-white/5">
+    <section className="h-[calc(100vh-120px)] flex overflow-hidden border-t border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-slate-900/70 dark:shadow-none">
       {/* Sidebar */}
       <ConversationList
         conversations={conversations}
@@ -152,7 +152,7 @@ function ChatContent() {
           onConversationUpdated={() => fetchConversations(currentUser.id)}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-secondary-text">
+        <div className="flex-1 flex items-center justify-center bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400">
           {conversations.length === 0 ? (
             <p>No conversations yet. Search for users to start messaging!</p>
           ) : (
@@ -168,7 +168,7 @@ export default function ChatPage() {
   return (
     <Suspense fallback={
       <section className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="text-secondary-text">Loading chat...</div>
+        <div className="text-slate-500 dark:text-slate-400">Loading chat...</div>
       </section>
     }>
       <ChatContent />

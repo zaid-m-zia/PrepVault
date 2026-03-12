@@ -23,20 +23,20 @@ export default function ConversationList({
   onSelectConversation,
 }: ConversationListProps) {
   return (
-    <div className="w-80 border-r border-white/10 flex flex-col bg-black/20">
+    <div className="flex w-80 flex-col border-r border-gray-200 bg-gray-50 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 dark:shadow-none">
       {/* Header */}
-      <div className="p-6 border-b border-white/10">
-        <h2 className="text-xl font-display font-semibold">Messages</h2>
+      <div className="border-b border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-xl font-display font-semibold text-slate-900 dark:text-slate-100">Messages</h2>
       </div>
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
-          <div className="p-6 text-center text-secondary-text">
+          <div className="p-6 text-center text-slate-500 dark:text-slate-400">
             <p className="text-sm">No conversations yet</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-gray-200 dark:divide-white/5">
             {conversations.map((conv, idx) => (
               <motion.div
                 key={conv.userId}
@@ -44,12 +44,14 @@ export default function ConversationList({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => onSelectConversation(conv.userId)}
-                className={`p-4 cursor-pointer transition-all hover:bg-white/5 ${
-                  selectedUserId === conv.userId ? 'bg-white/10 border-l-2 border-cyan-400' : ''
+                className={`cursor-pointer p-4 transition-all hover:bg-white hover:shadow-sm dark:hover:bg-white/5 dark:hover:shadow-none ${
+                  selectedUserId === conv.userId
+                    ? 'border-l-2 border-indigo-500 bg-white shadow-sm dark:border-cyan-400 dark:bg-white/10 dark:shadow-none'
+                    : ''
                 }`}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg glass border border-white/10 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-bold text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:shadow-none">
                     {(conv.full_name || conv.username)
                       .split(' ')
                       .map((n: string) => n[0])
@@ -60,18 +62,18 @@ export default function ConversationList({
                     <Link
                       href={`/profile/${conv.username}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="font-semibold hover:text-cyan-400 transition-colors line-clamp-1"
+                      className="line-clamp-1 font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
                     >
                       {conv.full_name || conv.username}
                     </Link>
-                    <p className="text-xs text-secondary-text">@{conv.username}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">@{conv.username}</p>
                   </div>
                 </div>
                 {conv.lastMessage && (
                   <div className="ml-13">
-                    <p className="text-xs text-secondary-text line-clamp-1">{conv.lastMessage}</p>
+                    <p className="line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{conv.lastMessage}</p>
                     {conv.lastMessageTime && (
-                      <p className="text-xs text-secondary-text/50">{conv.lastMessageTime}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{conv.lastMessageTime}</p>
                     )}
                   </div>
                 )}

@@ -26,8 +26,8 @@ export default function MessageBubble({ message, isCurrentUser }: MessageBubbleP
       <div
         className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
           isCurrentUser
-            ? 'glass border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 to-cyan-600/10'
-            : 'glass border border-white/10 bg-white/5'
+            ? 'border border-indigo-200 bg-indigo-50 shadow-sm dark:border-cyan-400/30 dark:bg-gradient-to-br dark:from-cyan-500/20 dark:to-cyan-600/10 dark:shadow-none'
+            : 'border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none'
         }`}
       >
         <p className="text-sm break-words text-slate-800 dark:text-slate-200">{message.content}</p>
