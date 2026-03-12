@@ -57,3 +57,54 @@ export const getUrgencyBadgeClass = (urgency: 'critical' | 'warning' | 'normal' 
       return 'bg-white/10';
   }
 };
+
+const OPPORTUNITY_KEYWORD_MAP: Record<string, string[]> = {
+  internship: ['internship', 'intern', 'swe intern', 'summer intern', 'remote internship', 'stipend'],
+  hackathon: ['hackathon', 'hack', 'coding hackathon'],
+  workshop: ['workshop', 'bootcamp', 'tech workshop'],
+  competition: ['competition', 'coding contest', 'challenge', 'coding challenge'],
+  conference: ['conference', 'summit', 'meetup'],
+};
+
+const escapeLikeTerm = (value: string): string => value.replace(/[%_,]/g, ' ').trim();
+
+export const normalizeOpportunitySearchInput = (query: string): string =>
+  query
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ');
+
+export const expandOpportunitySearchTerms = (query: string): string[] => {
+  const normalized = normalizeOpportunitySearchInput(query);
+  if (!normalized) return [];
+
+  const terms = new Set<string>([normalized, ...normalized.split(' ').filter(Boolean)]);
+
+  Object.entries(OPPORTUNITY_KEYWORD_MAP).forEach(([key, aliases]) => {
+    const shouldInclude = normalized.includes(key) || aliases.some((alias) => normalized.includes(alias));
+    if (shouldInclude) {
+      terms.add(key);
+      aliases.forEach((alias) => terms.add(alias));
+    }
+  });
+
+  return Array.from(terms)
+    .map(escapeLikeTerm)
+    .filter(Boolean)
+    .slice(0, 10);
+};
+
+export const hasInternshipIntent = (query: string): boolean => {
+  const normalized = normalizeOpportunitySearchInput(query);
+  const internshipAliases = OPPORTUNITY_KEYWORD_MAP.internship;
+  return internshipAliases.some((alias) => normalized.includes(alias));
+};
+
+export const buildOpportunityOrFilter = (terms: string[]): string => {
+  if (terms.length === 0) return '';
+  const columns = ['role', 'organization', 'category', 'skills', 'location', 'description', 'title'];
+  return columns
+    .flatMap((column) => terms.map((term) => `${column}.ilike.%${term}%`))
+    .join(',');
+};

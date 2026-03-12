@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import EventCard, { type SupabaseEvent } from '../../components/events/EventCard';
 import InternshipCard from '../../components/events/InternshipCard';
 import InternshipDetailsModal from '../../components/events/InternshipDetailsModal';
 import TrendingOpportunitiesSection from '../../components/events/TrendingOpportunitiesSection';
+import { buildOpportunityOrFilter, expandOpportunitySearchTerms, hasInternshipIntent, normalizeOpportunitySearchInput } from '../../lib/opportunityUtils';
 
 const MODES = ['Online', 'Offline', 'Hybrid'] as const;
 const CATEGORIES = ['Hackathon', 'Tech Fest', 'Competition', 'Coding Challenge', 'Conference', 'Tech Workshop', 'Internship'] as const;
@@ -15,8 +17,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 );
 
-export default function EventsPage() {
+function EventsPageContent() {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search') ?? '';
+  const normalizedSearchQuery = normalizeOpportunitySearchInput(searchQuery);
+  const isSearchActive = normalizedSearchQuery.length > 0;
+
   const [trendingOpportunities, setTrendingOpportunities] = useState<SupabaseEvent[]>([]);
+  const [upcomingHackathons, setUpcomingHackathons] = useState<SupabaseEvent[]>([]);
   const [featuredInternships, setFeaturedInternships] = useState<SupabaseEvent[]>([]);
   const [otherOpportunities, setOtherOpportunities] = useState<SupabaseEvent[]>([]);
   const [colleges, setColleges] = useState<string[]>([]);
@@ -49,8 +57,47 @@ export default function EventsPage() {
     setTrendingOpportunities(trendingData ?? []);
   }, []);
 
+  const fetchUpcomingHackathons = useCallback(async () => {
+    const { data: hackathonData } = await supabase
+      .from('events')
+      .select('*')
+      .ilike('category', '%hackathon%')
+      .order('event_date', { ascending: true })
+      .limit(5);
+
+    setUpcomingHackathons(hackathonData ?? []);
+  }, []);
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
+
+    if (isSearchActive) {
+      const expandedTerms = expandOpportunitySearchTerms(normalizedSearchQuery);
+      const orFilter = buildOpportunityOrFilter(expandedTerms);
+      const internshipIntent = hasInternshipIntent(normalizedSearchQuery);
+
+      let searchEventsQuery = supabase
+        .from('events')
+        .select('*');
+
+      if (orFilter) searchEventsQuery = searchEventsQuery.or(orFilter);
+      if (selectedMode) searchEventsQuery = searchEventsQuery.eq('mode', selectedMode);
+      if (selectedCollege) searchEventsQuery = searchEventsQuery.eq('college', selectedCollege);
+      if (selectedCategory) searchEventsQuery = searchEventsQuery.eq('category', selectedCategory);
+      if (internshipIntent) searchEventsQuery = searchEventsQuery.eq('category', 'Internship');
+
+      searchEventsQuery = internshipIntent
+        ? searchEventsQuery.order('deadline', { ascending: true })
+        : searchEventsQuery.order('created_at', { ascending: false });
+
+      const { data: searchResults } = await searchEventsQuery;
+      const results = searchResults ?? [];
+
+      setFeaturedInternships(results.filter((opportunity) => opportunity.category === 'Internship'));
+      setOtherOpportunities(results.filter((opportunity) => opportunity.category !== 'Internship'));
+      setLoading(false);
+      return;
+    }
 
     let internshipsQuery = supabase
       .from('events')
@@ -86,11 +133,12 @@ export default function EventsPage() {
     }
 
     setLoading(false);
-  }, [selectedMode, selectedCategory, selectedCollege]);
+  }, [isSearchActive, normalizedSearchQuery, selectedMode, selectedCategory, selectedCollege]);
 
   useEffect(() => {
     fetchColleges();
     fetchTrendingOpportunities();
+    fetchUpcomingHackathons();
   }, []);
 
   useEffect(() => {
@@ -116,7 +164,11 @@ export default function EventsPage() {
       <div className="max-w-7xl mx-auto px-6">
         <header className="mb-8">
           <h1 className="text-2xl font-display font-bold">Opportunities</h1>
-          <p className="mt-2 text-sm text-secondary-text">Discover internships, workshops, competitions, and more.</p>
+          <p className="mt-2 text-sm text-secondary-text">
+            {isSearchActive
+              ? `Showing smart results for "${normalizedSearchQuery}"`
+              : 'Discover internships, workshops, competitions, and more.'}
+          </p>
         </header>
 
         {/* Filters */}
@@ -155,7 +207,7 @@ export default function EventsPage() {
           </div>
         </div>
 
-        {!loading && trendingOpportunities.length > 0 && (
+        {!loading && !isSearchActive && trendingOpportunities.length > 0 && (
           <TrendingOpportunitiesSection opportunities={trendingOpportunities} onOpenDetails={openInternshipDetails} />
         )}
 
@@ -177,38 +229,87 @@ export default function EventsPage() {
           <>
             <div className="mb-10">
               <header className="mb-4">
-                <h2 className="text-xl font-display font-semibold">Featured Internships</h2>
-                <p className="mt-1 text-sm text-secondary-text">Discover internship opportunities curated from PrepVault.</p>
+                <h2 className="text-xl font-display font-semibold">{isSearchActive ? 'Internship Matches' : 'Featured Internships'}</h2>
+                <p className="mt-1 text-sm text-secondary-text">
+                  {isSearchActive
+                    ? 'Smart matches from internship role, organization, skills, location, and description.'
+                    : 'Discover internship opportunities curated from PrepVault.'}
+                </p>
               </header>
               {featuredInternships.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 md:px-4 overflow-visible">
                   {featuredInternships.map((internship) => (
                     <div key={internship.id} className="overflow-visible flex justify-center">
-                      <InternshipCard internship={internship} onOpenDetails={openInternshipDetails} />
+                      <InternshipCard internship={internship} onOpenDetails={openInternshipDetails} highlightQuery={normalizedSearchQuery} />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-secondary-text">No internships match the selected filters.</div>
+                <div className="text-sm text-secondary-text">
+                  {isSearchActive ? 'No internship matches found for your query.' : 'No internships match the selected filters.'}
+                </div>
               )}
             </div>
 
             <div>
               <header className="mb-4">
-                <h2 className="text-xl font-display font-semibold">Upcoming Opportunities</h2>
-                <p className="mt-1 text-sm text-secondary-text">Events, workshops, hackathons, and other opportunities.</p>
+                <h2 className="text-xl font-display font-semibold">{isSearchActive ? 'Event Matches' : 'Upcoming Opportunities'}</h2>
+                <p className="mt-1 text-sm text-secondary-text">
+                  {isSearchActive
+                    ? 'Smart matches from category, organization, location, and event description.'
+                    : 'Events, workshops, hackathons, and other opportunities.'}
+                </p>
               </header>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 md:px-4 overflow-visible">
                 {otherOpportunities.map((e) => (
                 <div key={e.id} className="overflow-visible flex justify-center">
-                  <EventCard event={e} />
+                  <EventCard event={e} highlightQuery={normalizedSearchQuery} />
                 </div>
               ))}
             </div>
               {otherOpportunities.length === 0 && (
-              <div className="mt-6 text-sm text-secondary-text">No events match the selected filters.</div>
+              <div className="mt-6 text-sm text-secondary-text">
+                {isSearchActive ? 'No event matches found for your query.' : 'No events match the selected filters.'}
+              </div>
             )}
             </div>
+
+            {isSearchActive && featuredInternships.length === 0 && otherOpportunities.length === 0 && (
+              <div className="mt-8 space-y-8">
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <h3 className="text-lg font-display font-semibold">No exact results found</h3>
+                  <p className="mt-2 text-sm text-secondary-text">
+                    Try broader keywords like internship, hackathon, workshop, competition, or conference.
+                  </p>
+                </div>
+
+                {trendingOpportunities.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-display font-semibold mb-3">Trending internships</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-2 md:px-4 overflow-visible">
+                      {trendingOpportunities.slice(0, 3).map((internship) => (
+                        <div key={internship.id} className="overflow-visible flex justify-center">
+                          <InternshipCard internship={internship} onOpenDetails={openInternshipDetails} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {upcomingHackathons.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-display font-semibold mb-3">Upcoming hackathons</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-2 md:px-4 overflow-visible">
+                      {upcomingHackathons.slice(0, 3).map((hackathon) => (
+                        <div key={hackathon.id} className="overflow-visible flex justify-center">
+                          <EventCard event={hackathon} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -219,5 +320,21 @@ export default function EventsPage() {
         onClose={closeInternshipDetails}
       />
     </section>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="py-12">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="h-7 w-48 bg-white/10 rounded animate-pulse" />
+          </div>
+        </section>
+      }
+    >
+      <EventsPageContent />
+    </Suspense>
   );
 }

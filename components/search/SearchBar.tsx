@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import supabase from '../../lib/supabaseClient'
+import { normalizeOpportunitySearchInput } from '../../lib/opportunityUtils'
 
 type SearchSubjectRow = {
   id: string
@@ -62,6 +63,14 @@ export default function SearchBar() {
       'guide',
       'path',
       'prepare',
+      'grasp',
+      'concepts',
+      'understand',
+      'me',
+      'for',
+      'my',
+      'exam',
+      'on'
     ]
 
     return learningWords.some((word) => input.toLowerCase().includes(word))
@@ -92,6 +101,9 @@ export default function SearchBar() {
       'ppt',
       'playlist',
       'what',
+      'fully',
+      'completely',
+      
     ]
 
     const words = input
@@ -236,6 +248,14 @@ export default function SearchBar() {
         router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
       }
 
+      setQuery('')
+      setOpen(false)
+      return
+    }
+
+    if (category === 'events') {
+      const cleanQuery = normalizeOpportunitySearchInput(rawQuery)
+      router.push(`/events?search=${encodeURIComponent(cleanQuery || rawQuery)}`)
       setQuery('')
       setOpen(false)
       return
