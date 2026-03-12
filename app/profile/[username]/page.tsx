@@ -159,11 +159,11 @@ export default function UserProfilePage({ params }: { params: { username: string
               {/* Follower/Following Counts */}
               <div className="flex gap-6 mt-3">
                 <div className="text-sm">
-                  <span className="font-semibold text-white">{followerCount}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{followerCount}</span>
                   <span className="text-secondary-text ml-1">Followers</span>
                 </div>
                 <div className="text-sm">
-                  <span className="font-semibold text-white">{followingCount}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{followingCount}</span>
                   <span className="text-secondary-text ml-1">Following</span>
                 </div>
               </div>

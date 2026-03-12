@@ -43,14 +43,14 @@ export default function ParticleNetwork() {
           density: { enable: true, width: 1200, height: 800 },
         },
         color: { value: isDark ? '#93c5fd' : '#64748b' },
-        size: { value: { min: 1, max: 2.2 } },
-        opacity: { value: 0.3 },
+        size: { value: isDark ? { min: 1, max: 2.2 } : 2.5 },
+        opacity: { value: isDark ? 0.3 : 0.35 },
         links: {
           enable: true,
           distance: 150,
-          opacity: 0.2,
+          opacity: isDark ? 0.2 : 0.15,
           width: 1,
-          color: isDark ? '#93c5fd' : '#94a3b8',
+          color: isDark ? '#93c5fd' : '#64748b',
         },
         move: {
           enable: true,
@@ -62,7 +62,7 @@ export default function ParticleNetwork() {
       },
       interactivity: {
         events: {
-          onHover: { enable: false, mode: 'repulse' as const },
+          onHover: { enable: !isDark, mode: 'grab' as const },
           onClick: { enable: false, mode: 'push' as const },
           resize: { enable: true },
         },
@@ -74,5 +74,5 @@ export default function ParticleNetwork() {
 
   if (!ready) return null
 
-  return <Particles id="pv-particle-network" options={options} className="absolute inset-0" />
+  return <Particles id="pv-particle-network" options={options} className="absolute inset-0 z-[-1]" />
 }

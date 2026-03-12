@@ -44,7 +44,7 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
 
     return parts.map((part, index) =>
       lowercaseTerms.includes(part.toLowerCase()) ? (
-        <mark key={`${part}-${index}`} className="bg-cyan-400/25 text-white px-0.5 rounded">
+        <mark key={`${part}-${index}`} className="bg-cyan-400/25 text-slate-900 dark:text-white px-0.5 rounded">
           {part}
         </mark>
       ) : (
@@ -58,7 +58,7 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
   return (
     <article
       onClick={() => onOpenDetails(internship)}
-      className={`relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 ${minHeightClass} w-full max-w-xl flex flex-col justify-between border border-slate-700/80 bg-slate-900/70 hover:border-indigo-500/80 hover:shadow-xl cursor-pointer`}
+      className={`relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 ${minHeightClass} w-full max-w-xl flex flex-col justify-between bg-white border border-gray-200 shadow-sm hover:shadow-md dark:bg-slate-900 dark:border-slate-700 cursor-pointer`}
     >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
@@ -70,18 +70,18 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
             </span>
           )}
         </div>
-        <p className="text-white/90 font-medium">{highlightText(internshipTitle)}</p>
+        <p className="text-slate-900 dark:text-white/90 font-medium">{highlightText(internshipTitle)}</p>
 
-        <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs text-white/90 ${isCompact ? 'gap-1' : ''}`}>
-          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+        <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-700 dark:text-white/90 ${isCompact ? 'gap-1' : ''}`}>
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-100 border border-gray-200 dark:bg-slate-800/80 dark:border-slate-700/60">
             <Laptop2 className="h-3 w-3" />
             {internship.mode || 'Mode NA'}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-100 border border-gray-200 dark:bg-slate-800/80 dark:border-slate-700/60">
             <Wallet className="h-3 w-3" />
             {internship.stipend || 'Stipend NA'}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-100 border border-gray-200 dark:bg-slate-800/80 dark:border-slate-700/60">
             <Clock3 className="h-3 w-3" />
             {internship.duration || 'Duration NA'}
           </span>
@@ -94,7 +94,7 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
         {!isCompact && skills.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {skills.map((skill) => (
-              <span key={skill} className="rounded-full px-3 py-1 text-xs bg-white/10 text-secondary-text">
+              <span key={skill} className="rounded-full px-3 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-secondary-text">
                 {skill}
               </span>
             ))}
@@ -119,7 +119,7 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
             Apply Now
           </a>
         ) : (
-          <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>
+          <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-slate-500 dark:text-slate-300/70' })}>
             Apply link unavailable
           </button>
         )}

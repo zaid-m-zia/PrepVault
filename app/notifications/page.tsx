@@ -215,7 +215,7 @@ export default function NotificationsPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-white'}`}>
+                      <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-slate-900 dark:text-white'}`}>
                         {followRequestData ? `${followRequestData.senderName} sent you a follow request` : formatNotificationContent(notification)}
                       </p>
                       <p className="text-xs text-secondary-text/70 mt-1">

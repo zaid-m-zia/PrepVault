@@ -77,7 +77,7 @@ export default function Header(): JSX.Element {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-surface/75 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:bg-slate-950/80 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">

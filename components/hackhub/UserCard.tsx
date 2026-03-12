@@ -15,7 +15,7 @@ export default function UserCard({ user }: { user: User }) {
             ))}
           </div>
 
-          <div className="mt-3 text-sm text-secondary-text">Looking for: <span className="text-white font-medium">{user.lookingFor}</span></div>
+          <div className="mt-3 text-sm text-secondary-text">Looking for: <span className="text-slate-900 dark:text-white font-medium">{user.lookingFor}</span></div>
         </div>
 
         <div className="mt-4 flex items-center justify-end">

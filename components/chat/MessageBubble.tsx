@@ -30,8 +30,8 @@ export default function MessageBubble({ message, isCurrentUser }: MessageBubbleP
             : 'glass border border-white/10 bg-white/5'
         }`}
       >
-        <p className="text-sm break-words">{message.content}</p>
-        <p className="text-xs text-secondary-text mt-1">{timeString}</p>
+        <p className="text-sm break-words text-slate-800 dark:text-slate-200">{message.content}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{timeString}</p>
       </div>
     </motion.div>
   )

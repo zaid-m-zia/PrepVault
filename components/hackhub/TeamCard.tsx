@@ -16,12 +16,12 @@ export default function TeamCard({ team }: { team: Team }) {
           </div>
 
           {team.lookingFor && (
-            <div className="mt-3 text-sm text-secondary-text">Looking for: <span className="text-white font-medium">{team.lookingFor.join(', ')}</span></div>
+            <div className="mt-3 text-sm text-secondary-text">Looking for: <span className="text-slate-900 dark:text-white font-medium">{team.lookingFor.join(', ')}</span></div>
           )}
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-secondary-text">Created by <span className="text-white font-medium">{team.createdBy}</span></div>
+          <div className="text-sm text-secondary-text">Created by <span className="text-slate-900 dark:text-white font-medium">{team.createdBy}</span></div>
           <Button size="sm">Join Team</Button>
         </div>
       </div>

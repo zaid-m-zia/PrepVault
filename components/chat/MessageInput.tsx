@@ -48,7 +48,7 @@ export default function MessageInput({
           onChange={(e) => setMessage(e.target.value)}
           placeholder={disabled ? 'Follow to continue messaging' : 'Type a message...'}
           disabled={disabled || sending}
-          className="flex-1 glass rounded-lg px-4 py-3 border border-white/10 focus:border-cyan-400/50 focus:outline-none transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-lg px-4 py-3 border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
         />
         <motion.button
           type="submit"

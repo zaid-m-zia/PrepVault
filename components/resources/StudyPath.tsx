@@ -50,10 +50,10 @@ export default function StudyPath({ title, query, steps, loading, onOpenResource
   }
 
   return (
-    <section className="mb-8 glass rounded-2xl border border-white/10 p-6 sm:p-8">
+    <section className="mb-8 glass rounded-2xl border border-gray-200 dark:border-white/10 p-6 sm:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-600 dark:bg-cyan-500/10 dark:text-cyan-300">
             <Sparkles className="h-3.5 w-3.5" />
             Study Path
           </div>
@@ -69,10 +69,10 @@ export default function StudyPath({ title, query, steps, loading, onOpenResource
           )
 
           return (
-            <article key={step.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <article key={step.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md dark:border-white/10 dark:bg-white/[0.03]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Step {index + 1}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-indigo-600 dark:text-cyan-300">Step {index + 1}</p>
                   <h4 className="mt-2 text-lg font-semibold text-primary-text">{step.title}</h4>
                 </div>
 
@@ -80,10 +80,10 @@ export default function StudyPath({ title, query, steps, loading, onOpenResource
                   {orderedGroups.map((group) => (
                     <span
                       key={group.type}
-                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-secondary-text"
+                      className="inline-flex items-center rounded-full border border-gray-200 bg-slate-100 px-3 py-1 text-xs font-medium text-secondary-text dark:border-white/10 dark:bg-white/5"
                     >
                       {group.type}
-                      <span className="ml-2 rounded-full bg-cyan-500/20 px-2 py-0.5 text-[11px] text-cyan-300">
+                      <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-600 dark:bg-cyan-500/20 dark:text-cyan-300">
                         {group.items.length}
                       </span>
                     </span>
@@ -98,9 +98,9 @@ export default function StudyPath({ title, query, steps, loading, onOpenResource
                       key={resource.id}
                       type="button"
                       onClick={() => onOpenResource(resource.id)}
-                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/30 px-4 py-3 text-left transition-colors hover:border-cyan-400/40 hover:bg-slate-900/60"
+                      className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition-colors hover:border-cyan-400/40 hover:shadow-md dark:border-white/10 dark:bg-slate-950/30 dark:hover:bg-slate-900/60"
                     >
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-cyan-500/15 dark:text-cyan-300">
                         <BookOpen className="h-4 w-4" />
                       </span>
                       <span className="min-w-0">

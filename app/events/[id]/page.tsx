@@ -33,38 +33,38 @@ export default async function EventDetailPage({ params }: { params: { id: string
             <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-secondary-text">
               <div>
                 <div className="text-xs text-secondary-text">Organizer</div>
-                <div className="text-sm text-white/90">{event.organizer}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{event.organizer}</div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary-text">Date</div>
-                <div className="text-sm text-white/90">{displayDate}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{displayDate}</div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary-text">Mode</div>
-                <div className="text-sm text-white/90">{event.mode}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{event.mode}</div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary-text">College</div>
-                <div className="text-sm text-white/90">{event.college}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{event.college}</div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary-text">Location</div>
-                <div className="text-sm text-white/90">{event.location || ''}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{event.location || ''}</div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary-text">Category</div>
-                <div className="text-sm text-white/90">{event.category}</div>
+                <div className="text-sm text-slate-900 dark:text-white/90">{event.category}</div>
               </div>
 
               {event.description && (
                 <div className="col-span-2 mt-4">
                   <div className="text-xs text-secondary-text mb-1">Description</div>
-                  <p className="text-sm text-white/80 leading-relaxed">{event.description}</p>
+                  <p className="text-sm text-slate-700 dark:text-white/80 leading-relaxed">{event.description}</p>
                 </div>
               )}
             </div>
@@ -78,7 +78,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 {event.registration_link ? (
                   <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className={buttonClasses({ size: 'sm' })}>Register</a>
                 ) : (
-                  <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>Registration link not available</button>
+                  <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-slate-500 dark:text-slate-300/70' })}>Registration link not available</button>
                 )}
               </div>
             </div>

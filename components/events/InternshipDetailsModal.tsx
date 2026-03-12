@@ -53,23 +53,23 @@ export default function InternshipDetailsModal({ internship, open, onClose }: Pr
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-secondary-text">
           <div>
             <div className="text-xs text-secondary-text">Mode</div>
-            <div className="text-white/90">{internship.mode || '—'}</div>
+            <div className="text-slate-900 dark:text-white/90">{internship.mode || '—'}</div>
           </div>
           <div>
             <div className="text-xs text-secondary-text">Deadline</div>
-            <div className="text-white/90">{deadline}</div>
+            <div className="text-slate-900 dark:text-white/90">{deadline}</div>
           </div>
           <div>
             <div className="text-xs text-secondary-text">Duration</div>
-            <div className="text-white/90">{internship.duration || '—'}</div>
+            <div className="text-slate-900 dark:text-white/90">{internship.duration || '—'}</div>
           </div>
           <div>
             <div className="text-xs text-secondary-text">Salary / Stipend</div>
-            <div className="text-white/90">{internship.stipend || '—'}</div>
+            <div className="text-slate-900 dark:text-white/90">{internship.stipend || '—'}</div>
           </div>
           <div className="md:col-span-2">
             <div className="text-xs text-secondary-text">Eligibility</div>
-            <div className="text-white/90">{internship.eligibility || '—'}</div>
+            <div className="text-slate-900 dark:text-white/90">{internship.eligibility || '—'}</div>
           </div>
           <div className="md:col-span-2">
             <div className="text-xs text-secondary-text">Skills</div>
@@ -80,7 +80,7 @@ export default function InternshipDetailsModal({ internship, open, onClose }: Pr
                 ))}
               </div>
             ) : (
-              <div className="text-white/90">—</div>
+              <div className="text-slate-900 dark:text-white/90">—</div>
             )}
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function InternshipDetailsModal({ internship, open, onClose }: Pr
               Apply Now
             </a>
           ) : (
-            <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-white/70' })}>Apply link unavailable</button>
+            <button disabled className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'text-slate-500 dark:text-slate-300/70' })}>Apply link unavailable</button>
           )}
         </div>
       </div>

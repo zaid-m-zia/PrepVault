@@ -19,7 +19,7 @@ export default function TrendingOpportunitiesSection({ opportunities, onOpenDeta
         <TrendingUp className="h-5 w-5 text-indigo-400" />
         <h2 className="text-2xl font-semibold">Trending Opportunities</h2>
       </div>
-      <p className="text-sm text-slate-400 mb-4">Urgent internships with closest deadlines</p>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Urgent internships with closest deadlines</p>
 
       <div className="overflow-x-auto overflow-y-visible scrollbar-hide px-2 md:px-4">
         <div className="flex gap-4 pb-4 pt-4 min-w-full overflow-visible">

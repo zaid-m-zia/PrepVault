@@ -8,7 +8,7 @@ export default function HomePage() {
     <section className="min-h-[70vh] flex items-center justify-center">
       <div className="w-full max-w-4xl text-center">
         <h1 className="text-4xl md:text-6xl font-semibold tracking-tight">PrepVault</h1>
-        <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
+        <p className="mt-4 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
           A focused platform to discover opportunities, study resources, and collaborators.
         </p>
 

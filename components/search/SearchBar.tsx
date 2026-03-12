@@ -276,7 +276,7 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setOpen(true)}
             placeholder="Search engineers, resources, events, hackathons..."
-            className="w-full h-11 px-5 pr-10 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+            className="w-full h-11 px-5 pr-10 rounded-xl border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
           />
           <Search size={16} className="absolute right-3 top-3.5 text-secondary-text pointer-events-none" />
         </div>
@@ -288,7 +288,7 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute left-0 top-full mt-2 w-full z-50 glass rounded-lg border border-slate-700 shadow-lg p-3"
+              className="absolute left-0 top-full mt-2 w-full z-50 glass rounded-lg border border-gray-200 dark:border-slate-700 shadow-lg p-3"
             >
               <div className="flex gap-3 items-center">
                 {categories.map((cat) => (
@@ -299,7 +299,7 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
                     className={`flex-1 text-center px-4 py-2 rounded-lg text-sm font-medium transition ${
                       category === cat.id
                         ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-md'
-                        : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white'
+                        : 'bg-gray-100 text-slate-700 hover:bg-gray-200 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
                     }`}
                   >
                     {cat.label}

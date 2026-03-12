@@ -561,10 +561,10 @@ function ResourcesPageContent() {
             Browse curated, exam-focused resources organized by branch, semester, subject, and module.
           </p>
           {searchQueryText && (
-            <p className="mt-3 text-sm text-cyan-300">Showing results for: {searchQueryText}</p>
+            <p className="mt-3 text-sm text-indigo-600 dark:text-cyan-300">Showing results for: {searchQueryText}</p>
           )}
           {smartSearchMessage && (
-            <p className="mt-3 text-sm text-cyan-300">{smartSearchMessage}</p>
+            <p className="mt-3 text-sm text-indigo-600 dark:text-cyan-300">{smartSearchMessage}</p>
           )}
         </div>
 

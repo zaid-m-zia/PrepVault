@@ -48,7 +48,7 @@ export default function EventCard({ event, highlightQuery }: { event: SupabaseEv
 
     return parts.map((part, index) =>
       lowercaseTerms.includes(part.toLowerCase()) ? (
-        <mark key={`${part}-${index}`} className="bg-cyan-400/25 text-white px-0.5 rounded">
+        <mark key={`${part}-${index}`} className="bg-cyan-400/25 text-slate-900 dark:text-white px-0.5 rounded">
           {part}
         </mark>
       ) : (
@@ -58,7 +58,7 @@ export default function EventCard({ event, highlightQuery }: { event: SupabaseEv
   };
 
   return (
-    <article className="relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 min-h-[260px] w-full max-w-xl flex flex-col justify-between border border-slate-700/80 bg-slate-900/70 hover:border-indigo-500/80 hover:shadow-xl">
+    <article className="relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 min-h-[260px] w-full max-w-xl flex flex-col justify-between bg-white border border-gray-200 shadow-sm hover:shadow-md dark:bg-slate-900 dark:border-slate-700">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-lg font-display font-semibold leading-snug flex-1">{highlightText(event.title)}</h3>
@@ -72,28 +72,28 @@ export default function EventCard({ event, highlightQuery }: { event: SupabaseEv
 
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Organizer</span>
-            <span className="text-white font-medium leading-snug">{event.organizer}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Organizer</span>
+            <span className="text-slate-900 dark:text-white font-medium leading-snug">{event.organizer}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Date</span>
-            <span className="text-white font-medium leading-snug">{displayDate}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Date</span>
+            <span className="text-slate-900 dark:text-white font-medium leading-snug">{displayDate}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Mode</span>
-            <span className="text-white font-medium leading-snug"><span className="px-2 py-0.5 rounded-md bg-white/3 text-xs">{event.mode}</span></span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Mode</span>
+            <span className="text-slate-900 dark:text-white font-medium leading-snug"><span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-xs">{event.mode}</span></span>
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Location</span>
-            <span className="text-white font-medium leading-snug">{event.location || event.college || '—'}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Location</span>
+            <span className="text-slate-900 dark:text-white font-medium leading-snug">{event.location || event.college || '—'}</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm text-gray-400">Event Type</span>
-            <span className="text-white font-medium leading-snug">{event.category}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Event Type</span>
+            <span className="text-slate-900 dark:text-white font-medium leading-snug">{event.category}</span>
           </div>
         </div>
       </div>

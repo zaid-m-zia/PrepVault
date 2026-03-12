@@ -179,8 +179,8 @@ export default function PrepVaultAI({ isOpen, onClose }: PrepVaultAIProps) {
                     }`}
                   >
                     {message.role === 'assistant' ? (
-                      <div className="prose prose-invert prose-sm max-w-none
-                        prose-headings:text-white prose-headings:font-semibold
+                      <div className="prose prose-sm dark:prose-invert max-w-none
+                        prose-headings:text-slate-900 dark:prose-headings:text-white prose-headings:font-semibold
                         prose-h2:text-lg prose-h2:mt-4 prose-h2:mb-2
                         prose-h3:text-base prose-h3:mt-3 prose-h3:mb-1
                         prose-p:my-2 prose-p:leading-relaxed
@@ -214,7 +214,7 @@ export default function PrepVaultAI({ isOpen, onClose }: PrepVaultAIProps) {
                       <p className="text-sm">{message.content}</p>
                     )}
                     <p className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-cyan-100' : 'text-secondary-text'
+                      message.role === 'user' ? 'text-slate-500 dark:text-slate-400' : 'text-secondary-text'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -252,7 +252,7 @@ export default function PrepVaultAI({ isOpen, onClose }: PrepVaultAIProps) {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about engineering studies..."
-                  className="flex-1 px-4 py-3 glass border border-white/10 rounded-lg focus:outline-none focus:border-cyan-400/50 text-primary-text placeholder-secondary-text"
+                  className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
                   maxLength={500}
                   disabled={loading}
                 />

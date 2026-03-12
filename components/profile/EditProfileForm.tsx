@@ -75,7 +75,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
               type="text"
               value={formData.full_name}
               onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
               placeholder="Enter your full name"
             />
           </div>
@@ -86,7 +86,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
               type="text"
               value={formData.username}
               onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
               placeholder="Enter your username"
             />
           </div>
@@ -98,7 +98,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
             value={formData.bio}
             onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
             rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition resize-none"
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             placeholder="Tell us about yourself..."
           />
         </div>
@@ -109,7 +109,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
             type="url"
             value={formData.avatar_url}
             onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-            className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
@@ -128,7 +128,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
             onClick={onCancel}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 glass border border-white/10 text-secondary-text hover:border-white/20 rounded-lg transition"
+            className="px-6 py-3 bg-white border border-gray-300 text-slate-900 hover:bg-gray-100 rounded-lg transition dark:bg-transparent dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Cancel
           </motion.button>
