@@ -50,7 +50,7 @@ export default function StudyPath({ title, query, steps, loading, onOpenResource
   }
 
   return (
-    <section className="mb-8 glass rounded-2xl border border-gray-200 dark:border-white/10 p-6 sm:p-8">
+    <section id="study-paths" className="mb-8 glass rounded-2xl border border-gray-200 dark:border-white/10 p-6 sm:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-600 dark:bg-cyan-500/10 dark:text-cyan-300">

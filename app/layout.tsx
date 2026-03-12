@@ -2,7 +2,7 @@
 
 import './globals.css';
 import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
+import Footer from '../components/Footer';
 import PrepVaultAI from '../components/PrepVaultAI';
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
