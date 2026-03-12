@@ -84,14 +84,14 @@ export default function ResourcesPage() {
   return (
     <Suspense
       fallback={
-        <section className="py-12 px-6">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex min-h-[calc(100svh-4.5rem)] flex-1 px-6 py-12">
+          <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col pb-24">
             <div className="mb-8">
               <h2 className="text-2xl font-display font-bold">Resources</h2>
               <p className="mt-2 text-sm text-secondary-text">Loading...</p>
             </div>
           </div>
-        </section>
+        </main>
       }
     >
       <ResourcesPageContent />
@@ -553,8 +553,8 @@ function ResourcesPageContent() {
   }
 
   return (
-    <section className="py-12 px-6">
-      <div className="max-w-6xl mx-auto">
+    <main className="flex min-h-[calc(100svh-4.5rem)] flex-1 px-6 py-12">
+      <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col pb-24">
         <div className="mb-8">
           <h2 className="text-2xl font-display font-bold">Resources</h2>
           <p className="mt-2 text-sm text-secondary-text">
@@ -761,7 +761,7 @@ function ResourcesPageContent() {
           </div>
         )}
       </div>
-    </section>
+    </main>
   )
 }
 
