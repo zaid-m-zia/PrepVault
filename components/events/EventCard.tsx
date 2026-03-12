@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 import { isNewOpportunity } from '../../lib/opportunityUtils';
 import { buttonClasses } from '../ui/Button';
 
@@ -57,13 +58,14 @@ export default function EventCard({ event, highlightQuery }: { event: SupabaseEv
   };
 
   return (
-    <article className="relative transform-gpu origin-center will-change-transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl glass rounded-xl p-6 min-h-[260px] w-full max-w-xl flex flex-col justify-between border border-white/20 hover:border-white/30">
+    <article className="relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 min-h-[260px] w-full max-w-xl flex flex-col justify-between border border-slate-700/80 bg-slate-900/70 hover:border-indigo-500/80 hover:shadow-xl">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-lg font-display font-semibold leading-snug flex-1">{highlightText(event.title)}</h3>
           {isNew && (
-            <span className="flex-shrink-0 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 text-xs font-semibold whitespace-nowrap">
-              🔥 NEW
+            <span className="inline-flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 text-xs font-semibold whitespace-nowrap">
+              <Sparkles className="h-3 w-3" />
+              NEW
             </span>
           )}
         </div>

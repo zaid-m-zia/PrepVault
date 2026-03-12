@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 import type { SupabaseEvent } from './EventCard';
 import InternshipCard from './InternshipCard';
 
@@ -15,10 +16,10 @@ export default function TrendingOpportunitiesSection({ opportunities, onOpenDeta
   return (
     <section className="mb-12 py-8 overflow-visible">
       <div className="flex items-center gap-2 mb-6">
-        <span className="text-2xl">🔥</span>
-        <h2 className="text-xl font-display font-semibold">Trending Opportunities</h2>
+        <TrendingUp className="h-5 w-5 text-indigo-400" />
+        <h2 className="text-2xl font-semibold">Trending Opportunities</h2>
       </div>
-      <p className="text-sm text-secondary-text mb-4">Urgent internships with closest deadlines</p>
+      <p className="text-sm text-slate-400 mb-4">Urgent internships with closest deadlines</p>
 
       <div className="overflow-x-auto overflow-y-visible scrollbar-hide px-2 md:px-4">
         <div className="flex gap-4 pb-4 pt-4 min-w-full overflow-visible">

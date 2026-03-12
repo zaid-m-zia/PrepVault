@@ -12,11 +12,11 @@ type ButtonClassOptions = {
 }
 
 const baseClasses =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60'
+  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-cyan-500 to-purple-600 hover:shadow-xl',
-  secondary: 'glass border border-white/15 hover:border-white/30',
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-500',
+  secondary: 'border border-slate-700 text-slate-200 hover:bg-slate-800',
   danger: 'bg-red-500/25 border border-red-400/40 hover:bg-red-500/35',
 }
 

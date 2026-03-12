@@ -25,12 +25,12 @@ export const getUrgencyLevel = (daysRemaining: number | null): 'critical' | 'war
  */
 export const getDeadlineText = (deadline: string | undefined | null): string => {
   const daysRemaining = getDaysRemaining(deadline);
-  if (daysRemaining === null) return '📅 Deadline NA';
-  if (daysRemaining <= 0) return '🔥 Deadline Today';
-  if (daysRemaining === 1) return '🔥 Tomorrow';
-  if (daysRemaining <= 3) return `🔥 ${daysRemaining} days left`;
-  if (daysRemaining <= 7) return `⏳ ${daysRemaining} days left`;
-  return `📅 ${Math.floor(daysRemaining)} days left`;
+  if (daysRemaining === null) return 'Deadline NA';
+  if (daysRemaining <= 0) return 'Deadline Today';
+  if (daysRemaining === 1) return 'Tomorrow';
+  if (daysRemaining <= 3) return `${daysRemaining} days left`;
+  if (daysRemaining <= 7) return `${daysRemaining} days left`;
+  return `${Math.floor(daysRemaining)} days left`;
 };
 
 /**

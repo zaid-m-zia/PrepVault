@@ -7,45 +7,46 @@ import PrepVaultAI from '../components/PrepVaultAI';
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react';
+import ThemeProvider from '../components/providers/ThemeProvider';
+import AnimatedBackground from '../components/AnimatedBackground/AnimatedBackground';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAIOpen, setIsAIOpen] = useState(false);
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Google Fonts: Inter (UI) and Space Grotesk (display) */}
+        {/* Google Fonts: Inter */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-primary text-primary-text antialiased min-h-screen">
-        <div className="flex flex-col min-h-screen">
-          {/* Header (presentational) */}
-          <Header />
+      <body className="bg-primary text-primary-text antialiased min-h-screen relative">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AnimatedBackground />
 
-          <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-            {children}
-          </main>
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <Header />
 
-          {/* Footer (presentational) */}
-          <Footer />
-        </div>
+            <main className="flex-1 w-full section-shell">
+              {children}
+            </main>
 
-        {/* PrepVault AI */}
-        <PrepVaultAI isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
+            <Footer />
+          </div>
 
-        {/* Floating AI Button */}
-        <button
-          onClick={() => setIsAIOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group z-40"
-          aria-label="Open PrepVault AI Assistant"
-        >
-          <Sparkles className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
-        </button>
+          <PrepVaultAI isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
 
-        {/* Vercel Analytics */}
-        <Analytics />
+          <button
+            onClick={() => setIsAIOpen(true)}
+            className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-500 transition-colors flex items-center justify-center z-40"
+            aria-label="Open PrepVault AI Assistant"
+          >
+            <Sparkles className="h-5 w-5" />
+          </button>
+
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,32 +1,28 @@
 import Link from 'next/link';
+import SearchBar from '../components/search/SearchBar';
 import { buttonClasses } from '../components/ui/Button';
 // HomePage component (server-side)
 // Purpose: Landing page with hero section introducing PrepVault and call-to-action button
 export default function HomePage() {
   return (
-    <section className="min-h-[60vh] flex items-center justify-center">
-      <div className="mx-auto w-full max-w-3xl text-center px-4">
-        <div className="glass p-8 md:p-12 rounded-lg">
-          <h1 className="text-4xl md:text-6xl font-display font-bold leading-tight">
- <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-from to-accent-to">
-    PrepVault
-  </span>
-  <br />
-  <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-from to-accent-to">
-    Your all-in-one student success hub
-  </span>
-</h1>
+    <section className="min-h-[70vh] flex items-center justify-center">
+      <div className="w-full max-w-4xl text-center">
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight">PrepVault</h1>
+        <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
+          A focused platform to discover opportunities, study resources, and collaborators.
+        </p>
 
-          <p className="mt-4 text-lg text-secondary-text max-w-2xl mx-auto">
-            From curated study resources and past papers to finding teammates for hackathons, Exploring Events, and collaboration opportunities — everything you need to learn, build, grow, and win, all in one place.
-          </p>
+        <div className="mt-8 max-w-2xl mx-auto">
+          <SearchBar className="flex items-center gap-2" />
+        </div>
 
-          <div className="mt-8 flex justify-center">
-            {/* Client-side navigation using Next.js Link (styles preserved) */}
-            <Link href="/resources" className={buttonClasses({ className: 'rounded-lg px-6 py-3' })}>
-              Explore Resources
-            </Link>
-          </div>
+        <div className="mt-8 flex justify-center gap-3">
+          <Link href="/resources" className={buttonClasses({ className: 'px-6 py-3' })}>
+            Explore Resources
+          </Link>
+          <Link href="/events" className={buttonClasses({ variant: 'secondary', className: 'px-6 py-3' })}>
+            Browse Opportunities
+          </Link>
         </div>
       </div>
     </section>

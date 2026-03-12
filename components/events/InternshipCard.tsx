@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react';
+import { CalendarDays, Clock3, Laptop2, Sparkles, Wallet } from 'lucide-react';
 import type { SupabaseEvent } from './EventCard';
 import { getDeadlineText, getDaysRemaining, getUrgencyLevel, getUrgencyBadgeClass, isNewOpportunity } from '../../lib/opportunityUtils';
 import { buttonClasses } from '../ui/Button';
@@ -57,24 +58,37 @@ export default function InternshipCard({ internship, onOpenDetails, isCompact = 
   return (
     <article
       onClick={() => onOpenDetails(internship)}
-      className={`relative transform-gpu origin-center will-change-transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl glass rounded-xl p-6 ${minHeightClass} w-full max-w-xl flex flex-col justify-between border border-white/20 hover:border-white/30 cursor-pointer`}
+      className={`relative transform-gpu origin-center will-change-transform transition-all duration-300 hover:scale-[1.02] rounded-xl p-6 ${minHeightClass} w-full max-w-xl flex flex-col justify-between border border-slate-700/80 bg-slate-900/70 hover:border-indigo-500/80 hover:shadow-xl cursor-pointer`}
     >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-lg font-display font-semibold leading-snug flex-1">{highlightText(organization)}</h3>
           {isNew && (
-            <span className="flex-shrink-0 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 text-xs font-semibold whitespace-nowrap">
-              🔥 NEW
+            <span className="inline-flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 text-xs font-semibold whitespace-nowrap">
+              <Sparkles className="h-3 w-3" />
+              NEW
             </span>
           )}
         </div>
         <p className="text-white/90 font-medium">{highlightText(internshipTitle)}</p>
 
         <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs text-white/90 ${isCompact ? 'gap-1' : ''}`}>
-          <span className="rounded-full px-3 py-1 bg-white/10">🟢 {internship.mode || 'Mode NA'}</span>
-          <span className="rounded-full px-3 py-1 bg-white/10">💰 {internship.stipend || 'Stipend NA'}</span>
-          <span className="rounded-full px-3 py-1 bg-white/10">⏱ {internship.duration || 'Duration NA'}</span>
-          <span className={`rounded-full px-3 py-1 ${urgencyBadgeClass}`}>{deadlineText}</span>
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+            <Laptop2 className="h-3 w-3" />
+            {internship.mode || 'Mode NA'}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+            <Wallet className="h-3 w-3" />
+            {internship.stipend || 'Stipend NA'}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 bg-slate-800/80 border border-slate-700/60">
+            <Clock3 className="h-3 w-3" />
+            {internship.duration || 'Duration NA'}
+          </span>
+          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${urgencyBadgeClass}`}>
+            <CalendarDays className="h-3 w-3" />
+            {deadlineText}
+          </span>
         </div>
 
         {!isCompact && skills.length > 0 && (

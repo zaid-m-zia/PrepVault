@@ -8,20 +8,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#0a0e27',
-        'primary-text': '#ffffff',
-        'secondary-text': '#94a3b8',
-        'accent-from': '#06b6d4',
-        'accent-to': '#a855f7',
-        'border-accent': 'rgba(139,92,246,0.3)',
-        cta: '#f8fafc',
+        primary: 'rgb(var(--color-bg) / <alpha-value>)',
+        'primary-text': 'rgb(var(--color-text) / <alpha-value>)',
+        'secondary-text': 'rgb(var(--color-muted) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        brand: 'rgb(var(--color-primary) / <alpha-value>)',
+        'accent-from': '#6366f1',
+        'accent-to': '#4f46e5',
+        cta: '#6366f1',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
-        display: ['Space Grotesk', 'Inter', 'ui-sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui'],
       },
       boxShadow: {
-        glow: '0 8px 30px rgba(6,182,212,0.07)',
+        glow: '0 8px 30px rgba(99,102,241,0.18)',
       },
       borderRadius: {
         lg: '12px',

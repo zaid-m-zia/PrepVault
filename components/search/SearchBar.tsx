@@ -26,7 +26,7 @@ type SearchResourceRow = {
   description: string | null
 }
 
-export default function SearchBar() {
+export default function SearchBar({ className = 'hidden md:flex items-center gap-2' }: { className?: string }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('people')
@@ -267,7 +267,7 @@ export default function SearchBar() {
   }
 
   return (
-    <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2">
+    <form onSubmit={handleSearch} className={className}>
       <div className="relative w-full" ref={containerRef}>
         <div className="relative">
           <input
