@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import {
   BookOpen,
@@ -7,6 +9,7 @@ import {
   Github,
   Linkedin,
   Mail,
+  MessageSquare,
   MessageCircle,
   ShieldCheck,
   Sparkles,
@@ -19,8 +22,8 @@ const productLinks = [
   { href: '/resources', label: 'Resources', icon: BookOpen },
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/hackhub', label: 'HackHub', icon: Users },
+  { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/resources#study-paths', label: 'Study Paths', icon: Workflow },
-  { href: '/chat', label: 'AI Assistant', icon: Sparkles },
 ]
 
 const communityLinks = [
@@ -78,7 +81,7 @@ function FooterLink({
   )
 }
 
-export default function Footer() {
+export default function Footer({ onOpenAI }: { onOpenAI: () => void }) {
   return (
     <footer className="mt-16 border-t border-gray-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-10">
@@ -105,6 +108,14 @@ export default function Footer() {
               {productLinks.map((link) => (
                 <FooterLink key={link.label} href={link.href} label={link.label} icon={link.icon} />
               ))}
+              <button
+                type="button"
+                onClick={onOpenAI}
+                className="inline-flex items-center gap-2 text-left text-sm text-slate-600 transition-colors hover:text-indigo-500 dark:text-slate-400"
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span>AI Assistant</span>
+              </button>
             </div>
           </div>
 
@@ -128,7 +139,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-gray-200 pt-5 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 PrepVault - Built for engineers</p>
+          <p>© 2026 PrepVault - Built for Engineers by an Engineer</p>
           <p>Version 1.0</p>
         </div>
       </div>

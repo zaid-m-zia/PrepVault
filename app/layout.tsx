@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
 
-            <Footer />
+            <Footer onOpenAI={() => setIsAIOpen(true)} />
           </div>
 
           <PrepVaultAI isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />

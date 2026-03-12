@@ -73,6 +73,7 @@ export default function Header(): JSX.Element {
     { href: '/resources', label: 'Resources' },
     { href: '/events', label: 'Events' },
     { href: '/hackhub', label: 'HackHub' },
+    { href: '/chat', label: 'Chat' },
     { href: '/profile', label: 'Profile' },
   ];
 
