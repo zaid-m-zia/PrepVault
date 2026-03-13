@@ -39,18 +39,18 @@ export default function ParticleNetwork() {
       detectRetina: true,
       particles: {
         number: {
-          value: isDark ? (isMobile ? 40 : 80) : isMobile ? 20 : 40,
+          value: isDark ? (isMobile ? 40 : 80) : isMobile ? 40 : 60,
           density: { enable: true, width: 1200, height: 800 },
         },
         color: { value: isDark ? '#94a3b8' : '#64748b' },
         size: { value: isDark ? { min: 1, max: 2.2 } : 2.5 },
-        opacity: { value: isDark ? 0.6 : 0.2 },
+        opacity: { value: isDark ? 0.6 : 0.45 },
         links: {
           enable: true,
-          distance: isDark ? 150 : 130,
-          opacity: isDark ? 0.4 : 0.1,
+          distance: isDark ? 150 : 140,
+          opacity: isDark ? 0.4 : 0.35,
           width: 1,
-          color: isDark ? '#64748b' : '#64748b',
+          color: isDark ? '#64748b' : '#94a3b8',
         },
         move: {
           enable: true,
@@ -63,7 +63,7 @@ export default function ParticleNetwork() {
       interactivity: {
         detectsOn: 'window' as const,
         events: {
-          onHover: { enable: isDark, mode: ['grab', 'repulse'] },
+          onHover: { enable: true, mode: isDark ? ['grab', 'repulse'] : 'grab' },
           onClick: { enable: false, mode: 'push' as const },
           resize: { enable: true },
         },
