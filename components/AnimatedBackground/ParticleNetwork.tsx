@@ -39,32 +39,46 @@ export default function ParticleNetwork() {
       detectRetina: true,
       particles: {
         number: {
-          value: isMobile ? 30 : 60,
+          value: isDark ? (isMobile ? 40 : 80) : isMobile ? 20 : 40,
           density: { enable: true, width: 1200, height: 800 },
         },
-        color: { value: isDark ? '#93c5fd' : '#64748b' },
+        color: { value: isDark ? '#94a3b8' : '#64748b' },
         size: { value: isDark ? { min: 1, max: 2.2 } : 2.5 },
-        opacity: { value: isDark ? 0.3 : 0.35 },
+        opacity: { value: isDark ? 0.6 : 0.2 },
         links: {
           enable: true,
-          distance: 150,
-          opacity: isDark ? 0.2 : 0.15,
+          distance: isDark ? 150 : 130,
+          opacity: isDark ? 0.4 : 0.1,
           width: 1,
-          color: isDark ? '#93c5fd' : '#64748b',
+          color: isDark ? '#64748b' : '#64748b',
         },
         move: {
           enable: true,
-          speed: 0.4,
+          speed: 0.6,
           direction: 'none' as const,
           random: true,
           outModes: 'out' as const,
         },
       },
       interactivity: {
+        detectsOn: 'window' as const,
         events: {
-          onHover: { enable: !isDark, mode: 'grab' as const },
+          onHover: { enable: isDark, mode: ['grab', 'repulse'] },
           onClick: { enable: false, mode: 'push' as const },
           resize: { enable: true },
+        },
+        modes: {
+          grab: {
+            distance: 170,
+            links: {
+              opacity: isDark ? 0.55 : 0.18,
+            },
+          },
+          repulse: {
+            distance: 110,
+            duration: 0.45,
+            speed: 0.5,
+          },
         },
       },
       background: { color: 'transparent' },
@@ -74,5 +88,5 @@ export default function ParticleNetwork() {
 
   if (!ready) return null
 
-  return <Particles id="pv-particle-network" options={options} className="absolute inset-0 z-[-1]" />
+  return <Particles id="pv-particle-network" options={options} className="pointer-events-none absolute inset-0 z-[-1]" />
 }
