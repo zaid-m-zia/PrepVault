@@ -8,12 +8,22 @@ import TeamCard, { type HackHubTeam } from '../../components/hackhub/TeamCard';
 import UserCard, { type HackHubUser } from '../../components/hackhub/UserCard';
 import Button from '../../components/ui/Button';
 
+type TeamPayload = {
+  name: string;
+  description: string;
+  techStack: string[];
+  lookingFor: string[];
+};
+
 export default function HackHubPage() {
   const [tab, setTab] = useState<'teams' | 'users' | 'create'>('teams');
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [updatingTeam, setUpdatingTeam] = useState(false);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
   const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+  const [editingTeam, setEditingTeam] = useState<HackHubTeam | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [teams, setTeams] = useState<HackHubTeam[]>([]);
   const [users, setUsers] = useState<HackHubUser[]>([]);
@@ -49,7 +59,7 @@ export default function HackHubPage() {
     try {
       const { data: teamsData } = await supabase
         .from('teams')
-        .select('id, name, description, tech_stack, looking_for, created_by, created_at')
+        .select('*')
         .order('created_at', { ascending: false });
 
       const resolvedTeams = teamsData ?? [];
@@ -88,6 +98,7 @@ export default function HackHubPage() {
           description: team.description || 'No description provided.',
           techStack: Array.isArray(team.tech_stack) ? team.tech_stack : [],
           lookingFor: Array.isArray(team.looking_for) ? team.looking_for : [],
+          createdById: team.created_by || '',
           createdByName,
           joined: joinedIds.has(team.id),
         };
@@ -190,12 +201,7 @@ export default function HackHubPage() {
     }
   }
 
-  async function handleCreateTeam(payload: {
-    name: string;
-    description: string;
-    techStack: string[];
-    lookingFor: string[];
-  }) {
+  async function handleCreateTeam(payload: TeamPayload) {
     if (!currentUserId) {
       router.push('/login');
       return;
@@ -222,6 +228,67 @@ export default function HackHubPage() {
     } finally {
       setCreatingTeam(false);
     }
+  }
+
+  async function handleUpdateTeam(teamId: string, payload: TeamPayload) {
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
+
+    setUpdatingTeam(true);
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({
+          name: payload.name,
+          description: payload.description,
+          tech_stack: payload.techStack,
+          looking_for: payload.lookingFor,
+        })
+        .eq('id', teamId)
+        .eq('created_by', currentUserId);
+
+      if (error) throw error;
+
+      await loadTeams(currentUserId);
+      setEditingTeam(null);
+    } catch (error) {
+      console.error('Failed to update team:', error);
+    } finally {
+      setUpdatingTeam(false);
+    }
+  }
+
+  async function handleDeleteTeam(teamId: string) {
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
+
+    const shouldDelete = window.confirm('Are you sure you want to delete this team?');
+    if (!shouldDelete) return;
+
+    setDeletingTeamId(teamId);
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId)
+        .eq('created_by', currentUserId);
+
+      if (error) throw error;
+
+      setTeams((prev) => prev.filter((team) => team.id !== teamId));
+    } catch (error) {
+      console.error('Failed to delete team:', error);
+    } finally {
+      setDeletingTeamId(null);
+    }
+  }
+
+  function handleOpenTeamDetails(teamId: string) {
+    router.push(`/hackhub/${teamId}`);
   }
 
   function handleConnect(userId: string) {
@@ -256,7 +323,10 @@ export default function HackHubPage() {
                   <TeamCard
                     key={team.id}
                     team={team}
+                    onOpen={handleOpenTeamDetails}
                     onJoin={handleJoinTeam}
+                    onEdit={team.createdById === currentUserId ? (_teamId) => setEditingTeam(team) : undefined}
+                    onDelete={team.createdById === currentUserId ? handleDeleteTeam : undefined}
                     joining={joiningTeamId === team.id}
                   />
                 ))
@@ -286,6 +356,15 @@ export default function HackHubPage() {
             </div>
           )}
         </div>
+
+        <EditTeamModal
+          open={Boolean(editingTeam)}
+          team={editingTeam}
+          updating={updatingTeam}
+          deleting={deletingTeamId === editingTeam?.id}
+          onClose={() => setEditingTeam(null)}
+          onSubmit={handleUpdateTeam}
+        />
       </div>
     </section>
   );
@@ -430,5 +509,169 @@ function CreateTeamForm({
         </div>
       </div>
     </form>
+  );
+}
+
+function EditTeamModal({
+  open,
+  team,
+  updating,
+  deleting,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  team: HackHubTeam | null;
+  updating: boolean;
+  deleting: boolean;
+  onClose: () => void;
+  onSubmit: (teamId: string, payload: TeamPayload) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [techStackInput, setTechStackInput] = useState('');
+  const [lookingForInput, setLookingForInput] = useState('');
+  const [techStack, setTechStack] = useState<string[]>([]);
+  const [lookingFor, setLookingFor] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!team) return;
+    setName(team.name);
+    setDescription(team.description);
+    setTechStack(team.techStack);
+    setLookingFor(team.lookingFor);
+    setTechStackInput('');
+    setLookingForInput('');
+  }, [team]);
+
+  function addTag(value: string, setter: Dispatch<SetStateAction<string[]>>) {
+    const normalized = value.trim();
+    if (!normalized) return;
+
+    setter((prev) => {
+      if (prev.some((tag) => tag.toLowerCase() === normalized.toLowerCase())) return prev;
+      return [...prev, normalized];
+    });
+  }
+
+  function removeTag(value: string, setter: Dispatch<SetStateAction<string[]>>) {
+    setter((prev) => prev.filter((tag) => tag !== value));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!team) return;
+
+    const normalizedTechInput = techStackInput.trim();
+    const normalizedLookingForInput = lookingForInput.trim();
+
+    const finalTechStack = normalizedTechInput
+      ? Array.from(new Set([...techStack, normalizedTechInput]))
+      : techStack;
+
+    const finalLookingFor = normalizedLookingForInput
+      ? Array.from(new Set([...lookingFor, normalizedLookingForInput]))
+      : lookingFor;
+
+    const payload = {
+      name,
+      description,
+      techStack: finalTechStack,
+      lookingFor: finalLookingFor,
+    };
+
+    if (!payload.name.trim() || !payload.description.trim()) return;
+    await onSubmit(team.id, payload);
+  }
+
+  if (!open || !team) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 px-4 flex items-center justify-center">
+      <div className="w-full max-w-2xl glass rounded-xl p-6 border border-white/10">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Edit Team</h3>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={updating || deleting}>Close</Button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-400">Team Name</label>
+            <input className="mt-1 block w-full rounded-md bg-[#07102a] px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-400">Description</label>
+            <textarea className="mt-1 block w-full rounded-md bg-[#07102a] px-3 py-2" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-400">Tech Stack (press Enter)</label>
+            <input
+              className="mt-1 block w-full rounded-md bg-[#07102a] px-3 py-2"
+              value={techStackInput}
+              onChange={(e) => setTechStackInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTag(techStackInput, setTechStack);
+                  setTechStackInput('');
+                }
+              }}
+            />
+            {techStack.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {techStack.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag}
+                    onClick={() => removeTag(tag, setTechStack)}
+                    className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text"
+                  >
+                    {tag} ×
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-400">Looking For / Roles (press Enter)</label>
+            <input
+              className="mt-1 block w-full rounded-md bg-[#07102a] px-3 py-2"
+              value={lookingForInput}
+              onChange={(e) => setLookingForInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTag(lookingForInput, setLookingFor);
+                  setLookingForInput('');
+                }
+              }}
+            />
+            {lookingFor.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {lookingFor.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag}
+                    onClick={() => removeTag(tag, setLookingFor)}
+                    className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text"
+                  >
+                    {tag} ×
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 flex items-center gap-3">
+            <Button type="submit" size="sm" disabled={updating || deleting}>
+              {updating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

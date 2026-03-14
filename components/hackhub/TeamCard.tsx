@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Button from '../ui/Button';
 
 export type HackHubTeam = {
@@ -7,35 +6,38 @@ export type HackHubTeam = {
   description: string;
   techStack: string[];
   lookingFor: string[];
+  createdById: string;
   createdByName: string;
   joined?: boolean;
 };
 
 export default function TeamCard({
   team,
+  onOpen,
   onJoin,
+  onEdit,
+  onDelete,
   joining = false,
 }: {
   team: HackHubTeam;
+  onOpen?: (teamId: string) => void;
   onJoin?: (teamId: string) => void;
+  onEdit?: (teamId: string) => void;
+  onDelete?: (teamId: string) => void;
   joining?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <article
-      className={`glass rounded-xl p-5 border transition-all duration-300 transform cursor-pointer ${
-        expanded
-          ? 'border-white/20 shadow-lg -translate-y-0.5 scale-[1.01]'
-          : 'border-white/10 hover:border-white/20'
-      }`}
-      onClick={() => setExpanded((prev) => !prev)}
+      className="glass rounded-xl p-5 border transition-all duration-300 transform cursor-pointer border-white/10 hover:border-white/20"
+      onClick={() => onOpen?.(team.id)}
     >
       <div className="flex flex-col h-full justify-between">
         <div>
           <h3 className="text-lg font-display font-semibold">{team.name}</h3>
-          <p className={`mt-2 text-sm text-secondary-text transition-all duration-300 ${expanded ? 'line-clamp-none' : 'line-clamp-3'}`}>
-            {team.description}
+          <p className="mt-2 text-sm text-secondary-text line-clamp-3">{team.description}</p>
+
+          <p className="mt-2 text-xs text-secondary-text">
+            Members needed: <span className="text-slate-900 dark:text-white font-medium">{team.lookingFor.length}</span>
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -60,16 +62,42 @@ export default function TeamCard({
           <div className="text-sm text-secondary-text">
             Created by <span className="text-slate-900 dark:text-white font-medium">{team.createdByName}</span>
           </div>
-          <Button
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              onJoin?.(team.id);
-            }}
-            disabled={joining || team.joined}
-          >
-            {team.joined ? 'Joined' : joining ? 'Joining...' : 'Join Team'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit(team.id);
+                }}
+              >
+                Edit
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(team.id);
+                }}
+              >
+                Delete
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onJoin?.(team.id);
+              }}
+              disabled={joining || team.joined}
+            >
+              {team.joined ? 'Joined' : joining ? 'Joining...' : 'Join Team'}
+            </Button>
+          </div>
         </div>
       </div>
     </article>
