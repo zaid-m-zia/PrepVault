@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import supabase from '../../lib/supabaseClient'
+import { createNotification } from '../../lib/notifications'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
 import MessageLimitPopup from './MessageLimitPopup'
@@ -125,6 +126,16 @@ export default function ChatWindow({
       })
 
       if (error) throw error
+
+      const { error: notificationError } = await createNotification({
+        user_id: selectedUserId,
+        type: 'message',
+        content: `NEW_DM:${currentUserId}:${content.slice(0, 120)}`,
+      })
+
+      if (notificationError) {
+        console.error('Error creating DM notification:', notificationError)
+      }
 
       // Update local state
       setMessageCount((prev) => prev + 1)

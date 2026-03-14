@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import supabase from '../../lib/supabaseClient';
+import { createNotification } from '../../lib/notifications';
 import TeamCard, { type HackHubTeam } from '../../components/hackhub/TeamCard';
 import UserCard, { type HackHubUser } from '../../components/hackhub/UserCard';
 import Button from '../../components/ui/Button';
@@ -187,6 +188,31 @@ export default function HackHubPage() {
           .insert({ team_id: teamId, user_id: currentUserId });
 
         if (error) throw error;
+
+        const joinedTeam = teams.find((team) => team.id === teamId);
+        if (joinedTeam?.createdById && joinedTeam.createdById !== currentUserId) {
+          const { error: joinRequestNotificationError } = await createNotification({
+            user_id: joinedTeam.createdById,
+            type: 'team_join_request',
+            content: `TEAM_JOIN_REQUEST:${teamId}:${currentUserId}`,
+            related_id: teamId,
+          });
+
+          if (joinRequestNotificationError) {
+            console.error('Failed to create join request notification:', joinRequestNotificationError);
+          }
+        }
+
+        const { error: acceptedNotificationError } = await createNotification({
+          user_id: currentUserId,
+          type: 'team_join_accepted',
+          content: `TEAM_JOIN_ACCEPTED:${teamId}`,
+          related_id: teamId,
+        });
+
+        if (acceptedNotificationError) {
+          console.error('Failed to create accepted notification:', acceptedNotificationError);
+        }
       }
 
       setTeams((prev) =>
@@ -209,7 +235,7 @@ export default function HackHubPage() {
 
     setCreatingTeam(true);
     try {
-      const { error } = await supabase
+      const { data: createdTeam, error } = await supabase
         .from('teams')
         .insert({
           name: payload.name,
@@ -217,9 +243,61 @@ export default function HackHubPage() {
           tech_stack: payload.techStack,
           looking_for: payload.lookingFor,
           created_by: currentUserId,
-        });
+        })
+        .select('id, name')
+        .single();
 
       if (error) throw error;
+
+      if (createdTeam?.id) {
+        const { data: candidateProfiles } = await supabase
+          .from('profiles')
+          .select('id, skills, looking_for')
+          .neq('id', currentUserId);
+
+        const inviteSignals = new Set(
+          [...payload.techStack, ...payload.lookingFor]
+            .map((item) => item.trim().toLowerCase())
+            .filter(Boolean)
+        );
+
+        const invitedUserIds = new Set<string>();
+
+        (candidateProfiles ?? []).forEach((profile: any) => {
+          const skillList = Array.isArray(profile.skills)
+            ? profile.skills
+            : typeof profile.skills === 'string'
+              ? profile.skills.split(',')
+              : [];
+
+          const interestList = Array.isArray(profile.looking_for)
+            ? profile.looking_for
+            : typeof profile.looking_for === 'string'
+              ? profile.looking_for.split(',')
+              : [];
+
+          const normalized = [...skillList, ...interestList]
+            .map((value: unknown) => String(value || '').trim().toLowerCase())
+            .filter(Boolean);
+
+          if (normalized.some((value: string) => inviteSignals.has(value))) {
+            invitedUserIds.add(profile.id);
+          }
+        });
+
+        for (const userId of invitedUserIds) {
+          const { error: inviteNotificationError } = await createNotification({
+            user_id: userId,
+            type: 'team_invite',
+            content: `TEAM_INVITE:${createdTeam.id}:${createdTeam.name}`,
+            related_id: createdTeam.id,
+          });
+
+          if (inviteNotificationError) {
+            console.error('Failed to create team invite notification:', inviteNotificationError);
+          }
+        }
+      }
 
       await loadTeams(currentUserId);
       setTab('teams');

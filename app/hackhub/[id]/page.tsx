@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import supabase from '../../../lib/supabaseClient'
 import Button from '../../../components/ui/Button'
+import TeamChat from '../../../components/hackhub/TeamChat'
 
 type TeamDetails = {
   id: string
@@ -156,6 +157,8 @@ export default function TeamDetailsPage({ params }: { params: { id: string } }) 
             <Button size="sm" variant="secondary" onClick={() => router.push('/hackhub')}>Back to HackHub</Button>
           </div>
         </div>
+
+        <TeamChat teamId={team.id} />
       </div>
     </section>
   )

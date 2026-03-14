@@ -19,6 +19,7 @@ export default function Header(): JSX.Element {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const [user, setUser] = useState<any | null>(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -38,6 +39,53 @@ export default function Header(): JSX.Element {
       subscription?.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    let mounted = true;
+
+    async function fetchUnreadCount() {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('Failed to fetch unread notifications count:', error);
+        return;
+      }
+
+      if (mounted) setUnreadNotifications(count || 0);
+    }
+
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel(`header-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          await fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -74,6 +122,7 @@ export default function Header(): JSX.Element {
     { href: '/events', label: 'Events' },
     { href: '/hackhub', label: 'HackHub' },
     { href: '/chat', label: 'Chat' },
+    { href: '/notifications', label: 'Notifications' },
     { href: '/profile', label: 'Profile' },
   ];
 
@@ -113,7 +162,14 @@ export default function Header(): JSX.Element {
                         : 'text-secondary-text hover:text-primary-text hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
                     }`}
                   >
-                    {item.label}
+                    <span className="inline-flex items-center gap-2">
+                      <span>{item.label}</span>
+                      {item.href === '/notifications' && unreadNotifications > 0 && (
+                        <span className="inline-flex min-w-[1.2rem] h-5 px-1.5 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-semibold leading-none">
+                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 </li>
               );
@@ -176,7 +232,14 @@ export default function Header(): JSX.Element {
                             : 'text-secondary-text hover:text-primary-text hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
                         }`}
                       >
-                        {item.label}
+                        <span className="inline-flex items-center gap-2">
+                          <span>{item.label}</span>
+                          {item.href === '/notifications' && unreadNotifications > 0 && (
+                            <span className="inline-flex min-w-[1.2rem] h-5 px-1.5 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-semibold leading-none">
+                              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                            </span>
+                          )}
+                        </span>
                       </Link>
                     </li>
                   );
