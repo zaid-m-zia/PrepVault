@@ -123,6 +123,82 @@ create index idx_notifications_is_read on notifications(is_read);
 alter table profiles 
 add column if not exists bio text,
 add column if not exists avatar_url text,
-add column if not exists created_at timestamp default now();
+add column if not exists college text,
+add column if not exists branch text,
+add column if not exists skills text[],
+add column if not exists github text,
+add column if not exists linkedin text,
+add column if not exists leetcode text,
+add column if not exists created_at timestamp default now(),
+add column if not exists updated_at timestamp default now();
+```
+
+## Phase 4: Projects + Achievements
+
+```sql
+-- Create projects table
+create table if not exists projects (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  description text,
+  tech_stack text[] default '{}',
+  github_link text,
+  demo_link text,
+  created_at timestamp default now()
+);
+
+alter table projects enable row level security;
+
+create policy "Anyone can view projects"
+  on projects for select
+  using (true);
+
+create policy "Users can insert own projects"
+  on projects for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own projects"
+  on projects for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can delete own projects"
+  on projects for delete
+  using (auth.uid() = user_id);
+
+create index if not exists idx_projects_user_id on projects(user_id);
+
+-- Create achievements table
+create table if not exists achievements (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  description text,
+  event text,
+  year int,
+  created_at timestamp default now()
+);
+
+alter table achievements enable row level security;
+
+create policy "Anyone can view achievements"
+  on achievements for select
+  using (true);
+
+create policy "Users can insert own achievements"
+  on achievements for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own achievements"
+  on achievements for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can delete own achievements"
+  on achievements for delete
+  using (auth.uid() = user_id);
+
+create index if not exists idx_achievements_user_id on achievements(user_id);
 ```
 
