@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import supabase from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import FollowButton from '../../../components/profile/FollowButton'
 import MessageButton from '../../../components/profile/MessageButton'
 import EditProfileForm from '../../../components/profile/EditProfileForm'
+import SuggestedEngineers from '../../../components/profile/SuggestedEngineers'
 import Button from '../../../components/ui/Button'
 import { motion } from 'framer-motion'
 
-export default function UserProfilePage({ params }: { params: { username: string } }) {
+export default function UserProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [followStatus, setFollowStatus] = useState<any>(null)
@@ -19,11 +20,6 @@ export default function UserProfilePage({ params }: { params: { username: string
   const [editing, setEditing] = useState(false)
   const router = useRouter()
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  )
-
   useEffect(() => {
     async function fetchData() {
       try {
@@ -32,11 +28,11 @@ export default function UserProfilePage({ params }: { params: { username: string
         const session = data?.session
         setUser(session?.user || null)
 
-        // Fetch profile by username
+        // Fetch profile by id (UUID)
         const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('username', params.username)
+          .eq('id', params.id)
           .single()
 
         if (error || !profileData) {
@@ -83,7 +79,7 @@ export default function UserProfilePage({ params }: { params: { username: string
     }
 
     fetchData()
-  }, [params.username, supabase, router])
+  }, [params.id])
 
   if (loading) {
     return (
@@ -153,7 +149,7 @@ export default function UserProfilePage({ params }: { params: { username: string
               <h1 className="text-3xl font-display font-bold">{profile.full_name || profile.username}</h1>
               <p className="text-lg text-secondary-text">@{profile.username}</p>
               {profile.bio && (
-                <p className="mt-3 text-secondary-text">{profile.bio}</p>
+                <p className="mt-3 text-secondary-text" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{profile.bio}</p>
               )}
               
               {/* Follower/Following Counts */}
@@ -235,21 +231,65 @@ export default function UserProfilePage({ params }: { params: { username: string
 
         {/* Show extended sections only if following or own profile */}
         {(isOwnProfile || followStatus?.status === 'accepted') && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="glass rounded-lg p-6 border border-white/10">
-              <h3 className="text-sm font-semibold text-secondary-text">Skills</h3>
-              <p className="mt-3 text-sm">Add skills to your profile</p>
-            </div>
+          <div className="space-y-4 mb-8">
+            {/* College + Branch */}
+            {(profile?.college || profile?.branch) && (
+              <div className="glass rounded-xl p-6 border border-white/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {profile?.college && (
+                    <div>
+                      <p className="text-xs text-secondary-text">College</p>
+                      <p className="mt-1 text-sm font-medium">{profile.college}</p>
+                    </div>
+                  )}
+                  {profile?.branch && (
+                    <div>
+                      <p className="text-xs text-secondary-text">Branch</p>
+                      <p className="mt-1 text-sm font-medium">{profile.branch}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <div className="glass rounded-lg p-6 border border-white/10">
-              <h3 className="text-sm font-semibold text-secondary-text">Teams</h3>
-              <p className="mt-3 text-sm">No teams yet</p>
-            </div>
+            {/* Skills */}
+            {Array.isArray(profile?.skills) && profile.skills.length > 0 && (
+              <div className="glass rounded-xl p-6 border border-white/10">
+                <p className="text-sm font-semibold text-secondary-text mb-3">Skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((s: string) => (
+                    <span key={s} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="glass rounded-lg p-6 border border-white/10">
-              <h3 className="text-sm font-semibold text-secondary-text">Resources</h3>
-              <p className="mt-3 text-sm">Your shared resources</p>
-            </div>
+            {/* Links */}
+            {(profile?.github || profile?.linkedin || profile?.leetcode) && (
+              <div className="glass rounded-xl p-6 border border-white/10">
+                <p className="text-sm font-semibold text-secondary-text mb-3">Links</p>
+                <div className="flex flex-wrap gap-3">
+                  {profile?.github && (
+                    <a href={profile.github} target="_blank" rel="noopener noreferrer"
+                      className="text-sm px-4 py-2 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                      GitHub
+                    </a>
+                  )}
+                  {profile?.linkedin && (
+                    <a href={profile.linkedin} target="_blank" rel="noopener noreferrer"
+                      className="text-sm px-4 py-2 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                      LinkedIn
+                    </a>
+                  )}
+                  {profile?.leetcode && (
+                    <a href={profile.leetcode} target="_blank" rel="noopener noreferrer"
+                      className="text-sm px-4 py-2 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                      LeetCode
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -261,6 +301,9 @@ export default function UserProfilePage({ params }: { params: { username: string
             </p>
           </div>
         )}
+
+        {/* Suggested Engineers — only shown on own profile */}
+        {isOwnProfile && <SuggestedEngineers />}
       </div>
     </section>
   )

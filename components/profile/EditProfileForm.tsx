@@ -11,39 +11,46 @@ type EditProfileFormProps = {
   onCancel: () => void
 }
 
+const inputCls =
+  'w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400'
+
 export default function EditProfileForm({ profile, onSave, onCancel }: EditProfileFormProps) {
   const initialSkills = Array.isArray(profile?.skills)
-    ? profile.skills.filter((skill: unknown) => typeof skill === 'string' && skill.trim())
+    ? profile.skills.filter((s: unknown) => typeof s === 'string' && (s as string).trim())
     : []
 
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
     username: profile?.username || '',
     bio: profile?.bio || '',
+    college: profile?.college || '',
+    branch: profile?.branch || '',
     avatar_url: profile?.avatar_url || '',
-    skills: initialSkills as string[]
+    github: profile?.github || '',
+    linkedin: profile?.linkedin || '',
+    leetcode: profile?.leetcode || '',
+    skills: initialSkills as string[],
   })
   const [skillInput, setSkillInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function field(key: keyof typeof formData) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+  }
+
   function addSkill(value: string) {
     const normalized = value.trim()
     if (!normalized) return
-
     setFormData((prev) => {
-      if (prev.skills.some((skill) => skill.toLowerCase() === normalized.toLowerCase())) {
-        return prev
-      }
+      if (prev.skills.some((s) => s.toLowerCase() === normalized.toLowerCase())) return prev
       return { ...prev, skills: [...prev.skills, normalized] }
     })
   }
 
   function removeSkill(skillToRemove: string) {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.filter((skill) => skill !== skillToRemove)
-    }))
+    setFormData((prev) => ({ ...prev, skills: prev.skills.filter((s) => s !== skillToRemove) }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,24 +59,29 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
     setError(null)
 
     try {
-      const { data } = await supabase.auth.getSession()
-      const session = data?.session
+      const { data: sessionData } = await supabase.auth.getSession()
+      const session = sessionData?.session
       if (!session) throw new Error('Not authenticated')
 
-      const { data: updatedData, error } = await supabase
+      const { data: updatedData, error: updateError } = await supabase
         .from('profiles')
         .update({
           full_name: formData.full_name,
           username: formData.username,
           bio: formData.bio,
+          college: formData.college,
+          branch: formData.branch,
           avatar_url: formData.avatar_url,
-          skills: formData.skills
+          github: formData.github,
+          linkedin: formData.linkedin,
+          leetcode: formData.leetcode,
+          skills: formData.skills,
         })
         .eq('id', session.user.id)
         .select()
         .single()
 
-      if (error) throw error
+      if (updateError) throw updateError
 
       onSave(updatedData)
     } catch (err: any) {
@@ -94,54 +106,70 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Name + Username */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-2">Full Name</label>
-            <input
-              type="text"
-              value={formData.full_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
-              placeholder="Enter your full name"
-            />
+            <input type="text" value={formData.full_name} onChange={field('full_name')} className={inputCls} placeholder="Enter your full name" />
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-2">Username</label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
-              placeholder="Enter your username"
-            />
+            <input type="text" value={formData.username} onChange={field('username')} className={inputCls} placeholder="Enter your username" />
           </div>
         </div>
 
+        {/* College + Branch */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">College</label>
+            <input type="text" value={formData.college} onChange={field('college')} className={inputCls} placeholder="e.g. MIT" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Branch</label>
+            <input type="text" value={formData.branch} onChange={field('branch')} className={inputCls} placeholder="e.g. Computer Science" />
+          </div>
+        </div>
+
+        {/* Bio */}
         <div>
           <label className="block text-sm font-medium mb-2">Bio</label>
           <textarea
             value={formData.bio}
-            onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-            rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+            onChange={field('bio')}
+            rows={3}
+            className={`${inputCls} resize-none`}
             placeholder="Tell us about yourself..."
           />
         </div>
 
+        {/* Avatar URL */}
         <div>
           <label className="block text-sm font-medium mb-2">Avatar URL</label>
-          <input
-            type="url"
-            value={formData.avatar_url}
-            onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
-            placeholder="https://example.com/avatar.jpg"
-          />
+          <input type="url" value={formData.avatar_url} onChange={field('avatar_url')} className={inputCls} placeholder="https://example.com/avatar.jpg" />
         </div>
 
+        {/* Links */}
         <div>
-          <label className="block text-sm font-medium mb-2">Skills (press Enter)</label>
+          <p className="text-sm font-medium mb-3">Links</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-secondary-text mb-1">GitHub URL</label>
+              <input type="url" value={formData.github} onChange={field('github')} className={inputCls} placeholder="https://github.com/username" />
+            </div>
+            <div>
+              <label className="block text-xs text-secondary-text mb-1">LinkedIn URL</label>
+              <input type="url" value={formData.linkedin} onChange={field('linkedin')} className={inputCls} placeholder="https://linkedin.com/in/username" />
+            </div>
+            <div>
+              <label className="block text-xs text-secondary-text mb-1">LeetCode URL</label>
+              <input type="url" value={formData.leetcode} onChange={field('leetcode')} className={inputCls} placeholder="https://leetcode.com/username" />
+            </div>
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Skills <span className="text-secondary-text font-normal">(press Enter to add)</span></label>
           <input
             type="text"
             value={skillInput}
@@ -153,10 +181,9 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
                 setSkillInput('')
               }
             }}
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+            className={inputCls}
             placeholder="Add a skill and press Enter"
           />
-
           {formData.skills.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {formData.skills.map((skill) => (
@@ -164,7 +191,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
                   key={skill}
                   type="button"
                   onClick={() => removeSkill(skill)}
-                  className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text"
+                  className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text hover:bg-red-500/10 hover:text-red-400 transition"
                 >
                   {skill} ×
                 </button>
@@ -173,15 +200,11 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
           )}
         </div>
 
+        {/* Actions */}
         <div className="flex gap-4">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-3 rounded-lg"
-          >
+          <Button type="submit" disabled={loading} className="px-6 py-3 rounded-lg">
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
-
           <motion.button
             type="button"
             onClick={onCancel}

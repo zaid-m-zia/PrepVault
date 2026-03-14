@@ -85,7 +85,7 @@ export default function SuggestedEngineers() {
                 </div>
               </div>
 
-              <Link href={`/profile/${user.username}`} className="block hover:text-primary-text">
+              <Link href={`/profile/${user.id}`} className="block hover:text-primary-text">
                 <h3 className="text-lg font-semibold">{user.full_name || user.username}</h3>
                 <p className="text-sm text-secondary-text">@{user.username}</p>
               </Link>

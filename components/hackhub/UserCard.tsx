@@ -3,9 +3,14 @@ import Button from '../ui/Button';
 export type HackHubUser = {
   id: string;
   name: string;
+  college: string;
+  branch: string;
   bio: string;
   skills: string[];
   lookingFor: string[];
+  github: string;
+  linkedin: string;
+  leetcode: string;
 };
 
 export default function UserCard({
@@ -20,22 +25,55 @@ export default function UserCard({
       <div className="flex flex-col h-full justify-between">
         <div>
           <h3 className="text-lg font-display font-semibold">{user.name}</h3>
+          {(user.college || user.branch) && (
+            <p className="mt-1 text-xs text-secondary-text">
+              {[user.college, user.branch].filter(Boolean).join(' · ')}
+            </p>
+          )}
           <p className="mt-2 text-sm text-secondary-text line-clamp-3">{user.bio}</p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {user.skills.map((s) => (
-              <span key={s} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">{s}</span>
-            ))}
-          </div>
+          {user.skills.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {user.skills.map((s) => (
+                <span key={s} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">{s}</span>
+              ))}
+            </div>
+          )}
 
           {user.lookingFor.length > 0 && (
             <div className="mt-3">
-              <div className="text-sm text-secondary-text mb-2">Looking for:</div>
+              <div className="text-xs text-secondary-text mb-2">Looking for:</div>
               <div className="flex flex-wrap gap-2">
                 {user.lookingFor.map((item) => (
                   <span key={item} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">{item}</span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {(user.github || user.linkedin || user.leetcode) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {user.github && (
+                <a href={user.github} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs px-3 py-1 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                  GitHub
+                </a>
+              )}
+              {user.linkedin && (
+                <a href={user.linkedin} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs px-3 py-1 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                  LinkedIn
+                </a>
+              )}
+              {user.leetcode && (
+                <a href={user.leetcode} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs px-3 py-1 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition">
+                  LeetCode
+                </a>
+              )}
             </div>
           )}
         </div>

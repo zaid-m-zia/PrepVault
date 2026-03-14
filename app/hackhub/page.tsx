@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import supabase from '../../lib/supabaseClient';
 import TeamCard, { type HackHubTeam } from '../../components/hackhub/TeamCard';
@@ -106,7 +107,8 @@ export default function HackHubPage() {
     try {
       let query = supabase
         .from('profiles')
-        .select('id, full_name, username, bio, skills, looking_for')
+        .select('id, full_name, username, bio, college, branch, skills, looking_for, github, linkedin, leetcode')
+        .not('skills', 'is', null)
         .order('created_at', { ascending: false });
 
       if (userId) {
@@ -115,25 +117,32 @@ export default function HackHubPage() {
 
       const { data } = await query;
 
-      const teammates: HackHubUser[] = (data ?? []).map((profile: any) => {
-        const skills = Array.isArray(profile.skills)
-          ? profile.skills.filter((item: unknown) => typeof item === 'string' && item.trim())
-          : [];
+      const teammates: HackHubUser[] = (data ?? [])
+        .filter((profile: any) => Array.isArray(profile.skills) && profile.skills.length > 0)
+        .map((profile: any) => {
+          const skills = profile.skills.filter(
+            (item: unknown) => typeof item === 'string' && (item as string).trim()
+          );
 
-        const lookingFor = Array.isArray(profile.looking_for)
-          ? profile.looking_for.filter((item: unknown) => typeof item === 'string' && item.trim())
-          : typeof profile.looking_for === 'string' && profile.looking_for.trim()
-            ? profile.looking_for.split(',').map((value: string) => value.trim()).filter(Boolean)
-            : ['Collaborators'];
+          const lookingFor = Array.isArray(profile.looking_for)
+            ? profile.looking_for.filter((item: unknown) => typeof item === 'string' && (item as string).trim())
+            : typeof profile.looking_for === 'string' && profile.looking_for.trim()
+              ? profile.looking_for.split(',').map((v: string) => v.trim()).filter(Boolean)
+              : [];
 
-        return {
-          id: profile.id,
-          name: profile.full_name || profile.username || 'Unnamed User',
-          bio: profile.bio || 'No bio added yet.',
-          skills,
-          lookingFor,
-        };
-      });
+          return {
+            id: profile.id,
+            name: profile.full_name || profile.username || 'Unnamed User',
+            college: profile.college || '',
+            branch: profile.branch || '',
+            bio: profile.bio || 'No bio added yet.',
+            skills,
+            lookingFor,
+            github: profile.github || '',
+            linkedin: profile.linkedin || '',
+            leetcode: profile.leetcode || '',
+          };
+        });
 
       setUsers(teammates);
     } catch (error) {
@@ -263,7 +272,9 @@ export default function HackHubPage() {
                 <div className="col-span-full text-sm text-secondary-text">No teammates found.</div>
               ) : (
                 users.map((user) => (
-                  <UserCard key={user.id} user={user} onConnect={handleConnect} />
+                  <Link key={user.id} href={`/profile/${user.id}`}>
+                    <UserCard user={user} onConnect={handleConnect} />
+                  </Link>
                 ))
               )}
             </div>
