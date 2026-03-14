@@ -59,13 +59,13 @@ export default function ChatWindow({
 
         // Check follow status
         const { data: followData } = await supabase
-          .from('follows')
-          .select('status')
+          .from('followers')
+          .select('id')
           .eq('follower_id', currentUserId)
           .eq('following_id', selectedUserId)
-          .single()
+          .maybeSingle()
 
-        setIsFollowing(followData?.status === 'accepted')
+        setIsFollowing(Boolean(followData?.id))
 
         // Fetch messages
         await fetchMessages()

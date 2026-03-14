@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from '../../lib/supabaseClient'
+import { createNotification } from '../../lib/notifications'
 import { motion } from 'framer-motion'
 import Button from '../../components/ui/Button'
 
@@ -113,30 +114,78 @@ export default function NotificationsPage() {
     }
   }
 
-  async function acceptFollowRequest(notificationId: string, senderId: string) {
+  async function acceptFollowRequest(notificationId: string, senderId: string, requestId?: string) {
     try {
-      // Update the follow request to accepted
+      let resolvedRequestId = requestId
+
+      if (!resolvedRequestId) {
+        const { data: request } = await supabase
+          .from('follow_requests')
+          .select('id')
+          .eq('sender_id', senderId)
+          .eq('receiver_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        resolvedRequestId = request?.id
+      }
+
+      if (!resolvedRequestId) {
+        throw new Error('Follow request not found')
+      }
+
       const { error: updateError } = await supabase
-        .from('follows')
+        .from('follow_requests')
         .update({ status: 'accepted' })
-        .eq('follower_id', senderId)
-        .eq('following_id', user.id)
+        .eq('id', resolvedRequestId)
+        .eq('receiver_id', user.id)
 
       if (updateError) throw updateError
+
+      const { data: existingFollower } = await supabase
+        .from('followers')
+        .select('id')
+        .eq('follower_id', senderId)
+        .eq('following_id', user.id)
+        .maybeSingle()
+
+      if (!existingFollower) {
+        const { error: followerInsertError } = await supabase
+          .from('followers')
+          .insert({
+            follower_id: senderId,
+            following_id: user.id,
+          })
+
+        if (followerInsertError) throw followerInsertError
+      }
 
       // Mark notification as read
       await markAsRead(notificationId)
 
       // Create a notification for the sender that their request was accepted
-      const { error: notificationError } = await supabase.from('notifications').insert({
-        user_id: senderId,
-        type: 'follow_accepted',
-        content: 'Your follow request was accepted',
-        is_read: false,
-      })
+      const { data: existingAcceptedNotification } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', senderId)
+        .eq('related_id', resolvedRequestId)
+        .eq('type', 'follow_accepted')
+        .maybeSingle()
 
-      if (notificationError) {
-        console.error('Error creating acceptance notification:', notificationError)
+      if (!existingAcceptedNotification) {
+        const { error: notificationError } = await createNotification({
+          user_id: senderId,
+          type: 'follow_accepted',
+          related_id: resolvedRequestId,
+          content: `FOLLOW_ACCEPTED:${resolvedRequestId}`,
+          is_read: false,
+        })
+
+        if (notificationError) {
+          console.error('Error creating acceptance notification:', notificationError)
+        }
       }
 
       // Remove this notification from the list
@@ -146,16 +195,35 @@ export default function NotificationsPage() {
     }
   }
 
-  async function rejectFollowRequest(notificationId: string, senderId: string) {
+  async function rejectFollowRequest(notificationId: string, senderId: string, requestId?: string) {
     try {
-      // Delete the follow request
-      const { error: deleteError } = await supabase
-        .from('follows')
-        .delete()
-        .eq('follower_id', senderId)
-        .eq('following_id', user.id)
+      let resolvedRequestId = requestId
 
-      if (deleteError) throw deleteError
+      if (!resolvedRequestId) {
+        const { data: request } = await supabase
+          .from('follow_requests')
+          .select('id')
+          .eq('sender_id', senderId)
+          .eq('receiver_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        resolvedRequestId = request?.id
+      }
+
+      if (!resolvedRequestId) {
+        throw new Error('Follow request not found')
+      }
+
+      const { error: rejectError } = await supabase
+        .from('follow_requests')
+        .update({ status: 'rejected' })
+        .eq('id', resolvedRequestId)
+        .eq('receiver_id', user.id)
+
+      if (rejectError) throw rejectError
 
       // Mark notification as read and remove from list
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
@@ -167,11 +235,20 @@ export default function NotificationsPage() {
   function parseFollowRequest(notification: Notification) {
     if (notification.type === 'follow_request' && notification.content.startsWith('FOLLOW_REQUEST:')) {
       const parts = notification.content.split(':')
+      if (parts.length >= 4) {
+        const requestId = parts[1]
+        const senderId = parts[2]
+        const senderName = parts.slice(3).join(':')
+        return { requestId, senderId, senderName }
+      }
+
       if (parts.length >= 3) {
         const senderId = parts[1]
         const senderName = parts.slice(2).join(':')
-        return { senderId, senderName }
+        return { requestId: notification.related_id, senderId, senderName }
       }
+
+      return { requestId: notification.related_id, senderId: '', senderName: 'Someone' }
     }
     return null
   }
@@ -411,6 +488,29 @@ export default function NotificationsPage() {
                       </div>
                     )}
 
+                    {followRequestData && !notification.is_read && (
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            acceptFollowRequest(notification.id, followRequestData.senderId, followRequestData.requestId)
+                          }}
+                          className="px-4 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all text-sm"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            rejectFollowRequest(notification.id, followRequestData.senderId, followRequestData.requestId)
+                          }}
+                          className="px-4 py-2 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 ml-4">
                       {!notification.is_read && (
                         <button
@@ -455,29 +555,6 @@ export default function NotificationsPage() {
                     </div>
 
                     {!followRequestData && !teamJoinRequestData && !notification.is_read && (
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            acceptFollowRequest(notification.id, followRequestData!.senderId)
-                          }}
-                          className="px-4 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all text-sm"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            rejectFollowRequest(notification.id, followRequestData!.senderId)
-                          }}
-                          className="px-4 py-2 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-sm"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    
-                    {!followRequestData && !notification.is_read && (
                       <div className="w-2 h-2 bg-cyan-400 rounded-full ml-4"></div>
                     )}
                   </div>

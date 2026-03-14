@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import supabase from '../../lib/supabaseClient'
+import { createNotification } from '../../lib/notifications'
 import Button from '../ui/Button'
 
 type FollowButtonProps = {
@@ -13,7 +13,6 @@ type FollowButtonProps = {
 }
 
 export default function FollowButton({ profileId, currentStatus, isFollowed, onStatusChange }: FollowButtonProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | undefined>(currentStatus)
 
@@ -23,6 +22,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
   }, [currentStatus])
 
   async function handleFollow() {
+    if (loading) return
     setLoading(true)
 
     try {
@@ -36,68 +36,74 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
         return
       }
 
-      // First, check current follow status from database to prevent race conditions
-      const { data: currentFollow } = await supabase
-        .from('follows')
-        .select('status')
+      // Check existing follow relationship first
+      const { data: existingFollower } = await supabase
+        .from('followers')
+        .select('id')
         .eq('follower_id', session.user.id)
         .eq('following_id', profileId)
         .maybeSingle()
 
-      const isCurrentlyFollowing = currentFollow?.status === 'accepted'
-      const isPending = currentFollow?.status === 'pending'
-      
-      if (isCurrentlyFollowing || isPending) {
-        console.log('Unfollowing user:', profileId)
-        // Unfollow
-        const { error: unfollowError } = await supabase
-          .from('follows')
-          .delete()
-          .eq('follower_id', session.user.id)
-          .eq('following_id', profileId)
+      if (existingFollower) {
+        setStatus('accepted')
+        onStatusChange?.('accepted')
+        return
+      }
 
-        if (unfollowError) {
-          console.error('Unfollow error:', unfollowError)
-          setLoading(false)
-          return
-        }
+      // Before insert, check if request already exists
+      const { data: existingRequest } = await supabase
+        .from('follow_requests')
+        .select('*')
+        .eq('sender_id', session.user.id)
+        .eq('receiver_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-        setStatus(undefined)
-        onStatusChange?.(undefined)
-      } else {
-        console.log('Following user:', profileId, 'from user:', session.user.id)
-        
-        // Step 1: Insert into follows table
-        const { error: followError } = await supabase.from('follows').insert({
-          follower_id: session.user.id,
-          following_id: profileId,
+      if (existingRequest) {
+        const existingStatus = existingRequest.status || 'pending'
+        setStatus(existingStatus)
+        onStatusChange?.(existingStatus)
+        return
+      }
+
+      const { data: createdRequest, error: requestError } = await supabase
+        .from('follow_requests')
+        .insert({
+          sender_id: session.user.id,
+          receiver_id: profileId,
           status: 'pending',
         })
+        .select('id, status')
+        .single()
 
-        if (followError) {
-          console.error('Follow insert error:', followError)
-          setLoading(false)
-          return
-        }
+      if (requestError || !createdRequest) {
+        throw requestError || new Error('Failed to create follow request')
+      }
 
-        console.log('Follow request inserted successfully')
-        setStatus('pending')
-        onStatusChange?.('pending')
+      setStatus(createdRequest.status || 'pending')
+      onStatusChange?.(createdRequest.status || 'pending')
 
-        // Step 2: Create notification for the receiver (don't fail follow if notification fails)
+      const { data: existingNotification } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', profileId)
+        .eq('related_id', createdRequest.id)
+        .eq('type', 'follow_request')
+        .maybeSingle()
+
+      if (!existingNotification) {
         const userName = session.user.user_metadata?.full_name || session.user.email || 'Someone'
-        const { error: notificationError } = await supabase.from('notifications').insert({
+        const { error: notificationError } = await createNotification({
           user_id: profileId,
           type: 'follow_request',
-          content: `FOLLOW_REQUEST:${session.user.id}:${userName}`,
+          related_id: createdRequest.id,
+          content: `FOLLOW_REQUEST:${createdRequest.id}:${session.user.id}:${userName}`,
           is_read: false,
         })
 
         if (notificationError) {
           console.error('Notification insert error:', notificationError)
-          // Don't fail the follow request if notification fails
-        } else {
-          console.log('Notification created successfully')
         }
       }
     } catch (e) {
@@ -112,7 +118,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
   return (
     <Button
       onClick={handleFollow}
-      disabled={loading}
+      disabled={loading || isAlreadyFollowing}
       size="md"
       variant={isAlreadyFollowing ? 'secondary' : 'primary'}
       className="px-6"

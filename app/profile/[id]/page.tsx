@@ -61,27 +61,38 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         }
 
         if (session?.user) {
-          const { data: follow } = await supabase
-            .from('follows')
-            .select('*')
+          const { data: followerRelation } = await supabase
+            .from('followers')
+            .select('id')
             .eq('follower_id', session.user.id)
             .eq('following_id', profileData.id)
             .maybeSingle()
 
-          setFollowStatus(follow)
+          if (followerRelation) {
+            setFollowStatus({ status: 'accepted' })
+          } else {
+            const { data: followRequest } = await supabase
+              .from('follow_requests')
+              .select('id, status, created_at')
+              .eq('sender_id', session.user.id)
+              .eq('receiver_id', profileData.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+
+            setFollowStatus(followRequest || null)
+          }
         }
 
         const [{ count: followers }, { count: following }, projectsRes, achievementsRes, { count: createdCount }, { count: joinedCount }] = await Promise.all([
           supabase
-            .from('follows')
+            .from('followers')
             .select('*', { count: 'exact', head: true })
-            .eq('following_id', profileData.id)
-            .eq('status', 'accepted'),
+            .eq('following_id', profileData.id),
           supabase
-            .from('follows')
+            .from('followers')
             .select('*', { count: 'exact', head: true })
-            .eq('follower_id', profileData.id)
-            .eq('status', 'accepted'),
+            .eq('follower_id', profileData.id),
           supabase
             .from('projects')
             .select('*')
@@ -338,16 +349,16 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                       setFollowStatus(newStatus ? { ...followStatus, status: newStatus } : null)
 
                       const { count: followers } = await supabase
-                        .from('follows')
+                        .from('followers')
                         .select('*', { count: 'exact', head: true })
                         .eq('following_id', profile.id)
-                        .eq('status', 'accepted')
+
 
                       const { count: following } = await supabase
-                        .from('follows')
+                        .from('followers')
                         .select('*', { count: 'exact', head: true })
                         .eq('follower_id', profile.id)
-                        .eq('status', 'accepted')
+
 
                       setFollowerCount(followers || 0)
                       setFollowingCount(following || 0)
