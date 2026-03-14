@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Play } from 'lucide-react'
 import ResourceViewer from '../../components/ResourceViewer'
 import StudyPath from '../../components/resources/StudyPath'
@@ -102,7 +102,7 @@ export default function ResourcesPage() {
 function ResourcesPageContent() {
   const searchParams = useSearchParams()
   const searchQueryText = searchParams.get('q')
-  const learningIntent = searchParams.get('intent') === 'study'
+  const fallbackMode = searchParams.get('fallback')
   const [branches, setBranches] = useState<Branch[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -127,6 +127,7 @@ function ResourcesPageContent() {
   const [studyPathSteps, setStudyPathSteps] = useState<StudyPathStep[]>([])
   const [studyPathResources, setStudyPathResources] = useState<Record<string, Resource>>({})
   const [loadingStudyPath, setLoadingStudyPath] = useState(false)
+  const [showRoadmap, setShowRoadmap] = useState(false)
 
   // Load branches on mount
   useEffect(() => {
@@ -279,7 +280,7 @@ function ResourcesPageContent() {
   }, [selectedModule])
 
   useEffect(() => {
-    if (!learningIntent) {
+    if (!showRoadmap) {
       setStudyPathTitle('')
       setStudyPathSteps([])
       setStudyPathResources({})
@@ -396,7 +397,13 @@ function ResourcesPageContent() {
     }
 
     fetchStudyPath()
-  }, [learningIntent, selectedModule, selectedSubject])
+  }, [showRoadmap, selectedModule, selectedSubject])
+
+  useEffect(() => {
+    if (!selectedSubject) {
+      setShowRoadmap(false)
+    }
+  }, [selectedSubject])
 
   // Auto-select hierarchy from smart search query params.
   useEffect(() => {
@@ -404,7 +411,13 @@ function ResourcesPageContent() {
     const moduleId = searchParams.get('module')
 
     if (!subjectId && !moduleId) {
-      setSmartSearchMessage(null)
+      if (fallbackMode === 'closest' && searchQueryText) {
+        setSmartSearchMessage(`Showing closest match for: ${searchQueryText}`)
+      } else if (fallbackMode === 'subjects') {
+        setSmartSearchMessage('No exact match found. Showing available subjects.')
+      } else {
+        setSmartSearchMessage(null)
+      }
       return
     }
 
@@ -481,7 +494,7 @@ function ResourcesPageContent() {
     }
 
     applySmartSelection()
-  }, [searchParams])
+  }, [fallbackMode, searchParams, searchQueryText])
 
   const handleBranchChange = useCallback((branchId: string) => {
     setSelectedBranch(branchId)
@@ -652,15 +665,41 @@ function ResourcesPageContent() {
           </div>
         </motion.div>
 
-        {learningIntent && (selectedSubject || selectedModule) && (
-          <StudyPath
-            title={studyPathTitle || 'Your Learning Roadmap'}
-            query={searchQueryText}
-            steps={studyPathSteps}
-            loading={loadingStudyPath}
-            onOpenResource={openStudyPathResource}
-          />
+        {selectedSubject && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <button
+              type="button"
+              onClick={() => setShowRoadmap((value) => !value)}
+              className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+            >
+              {showRoadmap ? 'Hide Study Roadmap' : 'Generate Study Roadmap'}
+            </button>
+          </motion.div>
         )}
+
+        <AnimatePresence initial={false}>
+          {showRoadmap && (selectedSubject || selectedModule) && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <StudyPath
+                title={studyPathTitle || 'Your Learning Roadmap'}
+                query={searchQueryText}
+                steps={studyPathSteps}
+                loading={loadingStudyPath}
+                onOpenResource={openStudyPathResource}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Resource Type Tabs */}
         {selectedModule && (

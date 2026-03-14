@@ -2,13 +2,6 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-type Intent = 'roadmap' | 'module' | 'search'
-
-function normalizeIntent(value: unknown): Intent {
-  if (value === 'roadmap' || value === 'module' || value === 'search') return value
-  return 'search'
-}
-
 function extractJsonObject(text: string): Record<string, unknown> | null {
   try {
     return JSON.parse(text)
@@ -37,6 +30,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 500 })
     }
 
+    const systemPrompt = `Extract the main study topic from this query.
+
+Return JSON only in this format:
+{"topic":"..."}
+
+  If the query is ambiguous, return the most likely concise study topic.`
+
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -48,27 +48,7 @@ export async function POST(req: Request) {
         messages: [
           {
             role: 'system',
-            content: `You are an AI that extracts study topics from search queries.
-
-Return JSON only.
-
-Detect:
-intent: roadmap | module | search
-topic: main learning topic
-
-Examples:
-
-Query: I want to learn DSA for placements
-Output:
-{"intent":"roadmap","topic":"data structures and algorithms"}
-
-Query: recursion notes
-Output:
-{"intent":"search","topic":"recursion"}
-
-Query: teach me recursion
-Output:
-{"intent":"roadmap","topic":"recursion"}`,
+            content: systemPrompt,
           },
           {
             role: 'user',
@@ -91,15 +71,14 @@ Output:
     const parsed = extractJsonObject(content)
 
     if (!parsed) {
-      return NextResponse.json({ intent: 'search', topic: query })
+      return NextResponse.json({ topic: query })
     }
 
-    const intent = normalizeIntent(parsed.intent)
     const topic = String(parsed.topic ?? '').trim() || query
 
-    return NextResponse.json({ intent, topic })
+    return NextResponse.json({ topic })
   } catch (error) {
     console.error('Intent parser route error:', error)
-    return NextResponse.json({ error: 'Intent parsing unavailable' }, { status: 500 })
+    return NextResponse.json({ error: 'Topic extraction unavailable' }, { status: 500 })
   }
 }

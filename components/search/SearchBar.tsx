@@ -6,7 +6,6 @@ import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import supabase from '../../lib/supabaseClient'
 import { normalizeOpportunitySearchInput } from '../../lib/opportunityUtils'
-import { parseLearningIntent } from '../../lib/parseLearningIntent'
 
 type SearchSubjectRow = {
   id: string
@@ -41,6 +40,32 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
     { id: 'hackhub', label: 'HackHub' },
   ]
 
+  const fillerWords = new Set([
+    'i',
+    'want',
+    'to',
+    'learn',
+    'study',
+    'understand',
+    'teach',
+    'explain',
+    'help',
+    'please',
+    'guide',
+    'me',
+    'about',
+    'how',
+    'can',
+    'you',
+  ])
+
+  const subjectSynonyms: Record<string, string> = {
+    dsa: 'data structures and algorithms',
+    dbms: 'database management systems',
+    os: 'operating systems',
+    cn: 'computer networks',
+  }
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -53,54 +78,6 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function shouldRunIntentParser(input: string): boolean {
-    const normalized = input.toLowerCase().trim()
-
-    return (
-      /\b(learn|study|roadmap|teach)\b/.test(normalized) ||
-      /how\s+to\s+start/.test(normalized) ||
-      /how\s+should\s+i\s+start/.test(normalized)
-    )
-  }
-
-  function cleanSearchQuery(input: string): string {
-    const fillerWords = [
-      'i',
-      'want',
-      'to',
-      'learn',
-      'study',
-      'teach',
-      'me',
-      'show',
-      'find',
-      'please',
-      'how',
-      'can',
-      'resources',
-      'about',
-      'for',
-      'understand',
-      'help',
-      'please',
-      'explain',
-      'notes',
-      'ppt',
-      'playlist',
-      'what',
-      'fully',
-      'completely',
-      
-    ]
-
-    const words = input
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word && !fillerWords.includes(word))
-
-    return words.join(' ')
-  }
-
   function normalizeQuery(value: string) {
     return value
       .trim()
@@ -109,77 +86,138 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
       .replace(/\s+/g, ' ')
   }
 
+  function cleanLearningQuery(input: string): string {
+    const normalized = normalizeQuery(input)
+    const expanded = normalized
+      .split(' ')
+      .filter(Boolean)
+      .map((word) => subjectSynonyms[word] ?? word)
+      .join(' ')
+
+    const cleaned = expanded
+      .split(' ')
+      .filter((word) => word && !fillerWords.has(word))
+
+    return cleaned.join(' ').trim()
+  }
+
+  function tokenize(input: string): string[] {
+    return normalizeQuery(input).split(' ').filter(Boolean)
+  }
+
+  function uniqueById<T extends { id: string }>(rows: T[]): T[] {
+    const seen = new Set<string>()
+    const unique: T[] = []
+
+    for (const row of rows) {
+      if (seen.has(row.id)) continue
+      seen.add(row.id)
+      unique.push(row)
+    }
+
+    return unique
+  }
+
+  async function runFuzzyLookup(term: string) {
+    const [moduleResult, subjectResult, resourceTitleResult, resourceDescriptionResult] = await Promise.all([
+      supabase
+        .from('modules')
+        .select('id, module_name, subject_id')
+        .ilike('module_name', `%${term}%`)
+        .limit(25),
+      supabase
+        .from('subjects')
+        .select('id, name, semester_id')
+        .or(`name.ilike.%${term}%,alias.ilike.%${term}%`)
+        .limit(25),
+      supabase
+        .from('resources')
+        .select('id, module_id, title, description')
+        .ilike('title', `%${term}%`)
+        .limit(25),
+      supabase
+        .from('resources')
+        .select('id, module_id, title, description')
+        .ilike('description', `%${term}%`)
+        .limit(25),
+    ])
+
+    return {
+      modules: (moduleResult.data ?? []) as SearchModuleRow[],
+      subjects: (subjectResult.data ?? []) as SearchSubjectRow[],
+      resourcesByTitle: (resourceTitleResult.data ?? []) as SearchResourceRow[],
+      resourcesByDescription: (resourceDescriptionResult.data ?? []) as SearchResourceRow[],
+    }
+  }
+
+  function scoreSimilarity(candidate: string, topic: string): number {
+    const candidateTokens = tokenize(candidate)
+    const topicTokens = tokenize(topic)
+    if (candidateTokens.length === 0 || topicTokens.length === 0) return 0
+
+    let score = 0
+
+    for (const token of topicTokens) {
+      if (candidateTokens.includes(token)) score += 2
+      else if (candidateTokens.some((candidateToken) => candidateToken.startsWith(token) || token.startsWith(candidateToken))) score += 1
+    }
+
+    if (normalizeQuery(candidate).includes(normalizeQuery(topic))) score += 3
+    return score
+  }
+
+  async function findClosestSubject(topic: string): Promise<SearchSubjectRow | null> {
+    const normalizedTopic = normalizeQuery(topic)
+    if (!normalizedTopic) return null
+
+    const { data } = await supabase
+      .from('subjects')
+      .select('id, name, semester_id')
+      .limit(200)
+
+    const subjects = (data ?? []) as SearchSubjectRow[]
+    if (subjects.length === 0) return null
+
+    let best: SearchSubjectRow | null = null
+    let bestScore = 0
+
+    for (const subject of subjects) {
+      const score = scoreSimilarity(subject.name, normalizedTopic)
+      if (score > bestScore) {
+        bestScore = score
+        best = subject
+      }
+    }
+
+    if (!best || bestScore <= 0) return null
+    return best
+  }
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const rawQuery = query.trim()
     if (!rawQuery) return
 
     if (category === 'resources') {
-      const shouldUseIntentParser = shouldRunIntentParser(rawQuery)
-
-      let parsedIntent: 'roadmap' | 'module' | 'search' = 'search'
-      let parsedTopic = rawQuery
-
-      if (shouldUseIntentParser) {
-        const parsed = await parseLearningIntent(rawQuery)
-        parsedIntent = parsed.intent
-        parsedTopic = parsed.topic || rawQuery
-      }
-
-      const cleanedInput = cleanSearchQuery(parsedTopic)
-      const searchQueryText = cleanedInput || parsedTopic || rawQuery
+      const cleanedTopic = cleanLearningQuery(rawQuery)
+      const searchQueryText = cleanedTopic || normalizeQuery(rawQuery) || rawQuery
       const normalizedQuery = normalizeQuery(searchQueryText)
 
       if (!normalizedQuery.trim()) {
-        router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+        router.push(`/resources?q=${encodeURIComponent(rawQuery)}&fallback=subjects`)
         setQuery('')
         setOpen(false)
         return
       }
 
       try {
-        const [
-          { data: moduleData },
-          { data: subjectData },
-          { data: resourceTitleData },
-          { data: resourceDescriptionData },
-          { data: authData },
-        ] = await Promise.all([
-          supabase
-            .from('modules')
-            .select('id, module_name, subject_id')
-            .ilike('module_name', `%${normalizedQuery}%`)
-            .limit(25),
-          supabase
-            .from('subjects')
-            .select('id, name, semester_id')
-            .or(`name.ilike.%${normalizedQuery}%,alias.ilike.%${normalizedQuery}%`)
-            .limit(25),
-          supabase
-            .from('resources')
-            .select('id, module_id, title, description')
-            .ilike('title', `%${normalizedQuery}%`)
-            .limit(25),
-          supabase
-            .from('resources')
-            .select('id, module_id, title, description')
-            .ilike('description', `%${normalizedQuery}%`)
-            .limit(25),
+        const [primaryLookup, authResult] = await Promise.all([
+          runFuzzyLookup(normalizedQuery),
           supabase.auth.getUser(),
         ])
 
-        let resolvedSubjectData = subjectData
-        if (!resolvedSubjectData) {
-          const { data: fallbackSubjectData } = await supabase
-            .from('subjects')
-            .select('id, name, semester_id')
-            .ilike('name', `%${normalizedQuery}%`)
-            .limit(25)
-          resolvedSubjectData = fallbackSubjectData
-        }
-
         let userBranch: string | null = null
-        const userId = authData?.user?.id
+        const userId = authResult?.data?.user?.id
 
         if (userId) {
           const { data: profileData } = await supabase
@@ -191,10 +229,28 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
           userBranch = profileData?.branch ?? null
         }
 
-        const subjects = (resolvedSubjectData ?? []) as SearchSubjectRow[]
-        const modules = (moduleData ?? []) as SearchModuleRow[]
-        const resourcesByTitle = (resourceTitleData ?? []) as SearchResourceRow[]
-        const resourcesByDescription = (resourceDescriptionData ?? []) as SearchResourceRow[]
+        let subjects = primaryLookup.subjects
+        let modules = primaryLookup.modules
+        let resourcesByTitle = primaryLookup.resourcesByTitle
+        let resourcesByDescription = primaryLookup.resourcesByDescription
+
+        if (
+          subjects.length === 0 &&
+          modules.length === 0 &&
+          resourcesByTitle.length === 0 &&
+          resourcesByDescription.length === 0
+        ) {
+          const words = normalizedQuery.split(' ').filter((word) => word && word.length > 1)
+
+          if (words.length > 0) {
+            const lookupByWord = await Promise.all(words.map((word) => runFuzzyLookup(word)))
+
+            subjects = uniqueById(lookupByWord.flatMap((result) => result.subjects))
+            modules = uniqueById(lookupByWord.flatMap((result) => result.modules))
+            resourcesByTitle = uniqueById(lookupByWord.flatMap((result) => result.resourcesByTitle))
+            resourcesByDescription = uniqueById(lookupByWord.flatMap((result) => result.resourcesByDescription))
+          }
+        }
 
         let selectedSubject: { id: string; semester_id: string } | null =
           subjects.length > 0 ? { id: subjects[0].id, semester_id: subjects[0].semester_id } : null
@@ -227,25 +283,7 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
 
         const encodedQuery = encodeURIComponent(searchQueryText)
 
-        if (parsedIntent === 'roadmap') {
-          if (selectedSubject) {
-            router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}&intent=study`)
-          } else if (modules.length > 0) {
-            router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}&intent=study`)
-          } else if (resourcesByTitle.length > 0) {
-            router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}&intent=study`)
-          } else {
-            router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
-          }
-        } else if (parsedIntent === 'module') {
-          if (modules.length > 0) {
-            router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
-          } else if (resourcesByTitle.length > 0) {
-            router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}`)
-          } else {
-            router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
-          }
-        } else if (modules.length > 0) {
+        if (modules.length > 0) {
           router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
         } else if (selectedSubject) {
           router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}`)
@@ -254,11 +292,17 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
         } else if (resourcesByDescription.length > 0) {
           router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}`)
         } else {
-          router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+          const closestSubject = await findClosestSubject(searchQueryText)
+
+          if (closestSubject) {
+            router.push(`/resources?subject=${encodeURIComponent(closestSubject.id)}&q=${encodedQuery}&fallback=closest`)
+          } else {
+            router.push(`/resources?q=${encodedQuery}&fallback=subjects`)
+          }
         }
       } catch (error) {
         console.error('Resource search failed:', error)
-        router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+        router.push(`/resources?q=${encodeURIComponent(rawQuery)}&fallback=subjects`)
       }
 
       setQuery('')

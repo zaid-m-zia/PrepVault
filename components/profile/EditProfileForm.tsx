@@ -12,14 +12,39 @@ type EditProfileFormProps = {
 }
 
 export default function EditProfileForm({ profile, onSave, onCancel }: EditProfileFormProps) {
+  const initialSkills = Array.isArray(profile?.skills)
+    ? profile.skills.filter((skill: unknown) => typeof skill === 'string' && skill.trim())
+    : []
+
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
     username: profile?.username || '',
     bio: profile?.bio || '',
-    avatar_url: profile?.avatar_url || ''
+    avatar_url: profile?.avatar_url || '',
+    skills: initialSkills as string[]
   })
+  const [skillInput, setSkillInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function addSkill(value: string) {
+    const normalized = value.trim()
+    if (!normalized) return
+
+    setFormData((prev) => {
+      if (prev.skills.some((skill) => skill.toLowerCase() === normalized.toLowerCase())) {
+        return prev
+      }
+      return { ...prev, skills: [...prev.skills, normalized] }
+    })
+  }
+
+  function removeSkill(skillToRemove: string) {
+    setFormData((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((skill) => skill !== skillToRemove)
+    }))
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,7 +62,8 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
           full_name: formData.full_name,
           username: formData.username,
           bio: formData.bio,
-          avatar_url: formData.avatar_url
+          avatar_url: formData.avatar_url,
+          skills: formData.skills
         })
         .eq('id', session.user.id)
         .select()
@@ -112,6 +138,39 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
             className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             placeholder="https://example.com/avatar.jpg"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Skills (press Enter)</label>
+          <input
+            type="text"
+            value={skillInput}
+            onChange={(e) => setSkillInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                addSkill(skillInput)
+                setSkillInput('')
+              }
+            }}
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+            placeholder="Add a skill and press Enter"
+          />
+
+          {formData.skills.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {formData.skills.map((skill) => (
+                <button
+                  key={skill}
+                  type="button"
+                  onClick={() => removeSkill(skill)}
+                  className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text"
+                >
+                  {skill} ×
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4">

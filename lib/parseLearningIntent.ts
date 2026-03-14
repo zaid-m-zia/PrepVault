@@ -1,37 +1,29 @@
-export type LearningIntent = 'roadmap' | 'module' | 'search'
-
-export type LearningIntentResult = {
-  intent: LearningIntent
-  topic: string
-}
-
-function normalizeIntent(intent: unknown): LearningIntent {
-  if (intent === 'roadmap' || intent === 'module' || intent === 'search') return intent
-  return 'search'
-}
-
-export async function parseLearningIntent(query: string): Promise<LearningIntentResult> {
-  const fallback: LearningIntentResult = { intent: 'search', topic: query }
+export async function extractSearchTopic(query: string): Promise<{ topic: string; ok: boolean }> {
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery) {
+    return { topic: query, ok: false }
+  }
 
   try {
-    const trimmedQuery = query.trim()
-    if (!trimmedQuery) return fallback
-
     const response = await fetch('/api/ai-intent-parser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: trimmedQuery }),
     })
 
-    if (!response.ok) return fallback
+    if (!response.ok) {
+      return { topic: query, ok: false }
+    }
 
     const data = await response.json()
-    const intent = normalizeIntent(data?.intent)
-    const topic = String(data?.topic ?? '').trim() || trimmedQuery
+    const topic = String(data?.topic ?? '').trim()
+    if (!topic) {
+      return { topic: query, ok: false }
+    }
 
-    return { intent, topic }
+    return { topic, ok: true }
   } catch (error) {
-    console.error('parseLearningIntent error:', error)
-    return fallback
+    console.error('extractSearchTopic error:', error)
+    return { topic: query, ok: false }
   }
 }
