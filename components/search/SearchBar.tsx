@@ -6,6 +6,7 @@ import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import supabase from '../../lib/supabaseClient'
 import { normalizeOpportunitySearchInput } from '../../lib/opportunityUtils'
+import { parseLearningIntent } from '../../lib/parseLearningIntent'
 
 type SearchSubjectRow = {
   id: string
@@ -52,28 +53,14 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function hasLearningIntent(input: string): boolean {
-    const learningWords = [
-      'learn',
-      'study',
-      'teach',
-      'roadmap',
-      'prepare',
-      'start',
-      'guide',
-      'path',
-      'prepare',
-      'grasp',
-      'concepts',
-      'understand',
-      'me',
-      'for',
-      'my',
-      'exam',
-      'on'
-    ]
+  function shouldRunIntentParser(input: string): boolean {
+    const normalized = input.toLowerCase().trim()
 
-    return learningWords.some((word) => input.toLowerCase().includes(word))
+    return (
+      /\b(learn|study|roadmap|teach)\b/.test(normalized) ||
+      /how\s+to\s+start/.test(normalized) ||
+      /how\s+should\s+i\s+start/.test(normalized)
+    )
   }
 
   function cleanSearchQuery(input: string): string {
@@ -128,9 +115,19 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
     if (!rawQuery) return
 
     if (category === 'resources') {
-      const learningIntent = hasLearningIntent(rawQuery)
-      const cleanedInput = cleanSearchQuery(rawQuery)
-      const searchQueryText = cleanedInput || rawQuery
+      const shouldUseIntentParser = shouldRunIntentParser(rawQuery)
+
+      let parsedIntent: 'roadmap' | 'module' | 'search' = 'search'
+      let parsedTopic = rawQuery
+
+      if (shouldUseIntentParser) {
+        const parsed = await parseLearningIntent(rawQuery)
+        parsedIntent = parsed.intent
+        parsedTopic = parsed.topic || rawQuery
+      }
+
+      const cleanedInput = cleanSearchQuery(parsedTopic)
+      const searchQueryText = cleanedInput || parsedTopic || rawQuery
       const normalizedQuery = normalizeQuery(searchQueryText)
 
       if (!normalizedQuery.trim()) {
@@ -228,18 +225,34 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
           }
         }
 
-        const encodedQuery = encodeURIComponent(cleanedInput || normalizedQuery)
-        const intentQuery = learningIntent ? '&intent=study' : ''
+        const encodedQuery = encodeURIComponent(searchQueryText)
 
-        // Priority: module > subject > resource title > resource description.
-        if (modules.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}${intentQuery}`)
+        if (parsedIntent === 'roadmap') {
+          if (selectedSubject) {
+            router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}&intent=study`)
+          } else if (modules.length > 0) {
+            router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}&intent=study`)
+          } else if (resourcesByTitle.length > 0) {
+            router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}&intent=study`)
+          } else {
+            router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+          }
+        } else if (parsedIntent === 'module') {
+          if (modules.length > 0) {
+            router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
+          } else if (resourcesByTitle.length > 0) {
+            router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}`)
+          } else {
+            router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
+          }
+        } else if (modules.length > 0) {
+          router.push(`/resources?module=${encodeURIComponent(modules[0].id)}&q=${encodedQuery}`)
         } else if (selectedSubject) {
-          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}${intentQuery}`)
+          router.push(`/resources?subject=${encodeURIComponent(selectedSubject.id)}&q=${encodedQuery}`)
         } else if (resourcesByTitle.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}${intentQuery}`)
+          router.push(`/resources?module=${encodeURIComponent(resourcesByTitle[0].module_id)}&q=${encodedQuery}`)
         } else if (resourcesByDescription.length > 0) {
-          router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}${intentQuery}`)
+          router.push(`/resources?module=${encodeURIComponent(resourcesByDescription[0].module_id)}&q=${encodedQuery}`)
         } else {
           router.push(`/search?type=resources&query=${encodeURIComponent(rawQuery)}&fallback=1`)
         }
