@@ -9,7 +9,8 @@ import EditProfileForm from '../../../components/profile/EditProfileForm'
 import SuggestedEngineers from '../../../components/profile/SuggestedEngineers'
 import ProfileHeader from '../../../components/profile/ProfileHeader'
 import ProfileSkills from '../../../components/profile/ProfileSkills'
-import ProfileProjects, { type ProfileProject } from '../../../components/profile/ProfileProjects'
+import ProfileProjects from '../../../components/profile/ProfileProjects'
+import type { ProfileProject } from '../../../components/profile/projectTypes'
 import ProfileActivity from '../../../components/profile/ProfileActivity'
 import ProfileAchievements, { type ProfileAchievement } from '../../../components/profile/ProfileAchievements'
 import ProfileLinks from '../../../components/profile/ProfileLinks'
@@ -22,6 +23,8 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [followerCount, setFollowerCount] = useState(0)
   const [followingCount, setFollowingCount] = useState(0)
   const [projects, setProjects] = useState<ProfileProject[]>([])
+  const [projectSaving, setProjectSaving] = useState(false)
+  const [projectToast, setProjectToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [achievements, setAchievements] = useState<ProfileAchievement[]>([])
   const [teamsCreated, setTeamsCreated] = useState(0)
   const [teamsJoined, setTeamsJoined] = useState(0)
@@ -132,6 +135,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
     fetchData()
   }, [params.id])
 
+  useEffect(() => {
+    if (!projectToast) return
+    const timeout = setTimeout(() => setProjectToast(null), 3000)
+    return () => clearTimeout(timeout)
+  }, [projectToast])
+
   if (loading) {
     return (
       <section className="py-12 px-6">
@@ -176,9 +185,139 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
     setEditing(false)
   }
 
+  async function handleAddProject(payload: {
+    title: string
+    description: string
+    tech_stack: string[]
+    github_link: string
+    demo_link: string
+  }) {
+    if (!user?.id || !isOwnProfile) return
+    setProjectSaving(true)
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          user_id: user.id,
+          title: payload.title,
+          description: payload.description,
+          tech_stack: payload.tech_stack,
+          github_link: payload.github_link,
+          demo_link: payload.demo_link,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      const newProject: ProfileProject = {
+        id: data.id,
+        title: data.title || 'Untitled Project',
+        description: data.description || '',
+        tech_stack: Array.isArray(data.tech_stack) ? data.tech_stack : [],
+        github_link: data.github_link || '',
+        demo_link: data.demo_link || '',
+      }
+
+      setProjects((prev) => [newProject, ...prev])
+      setProjectToast({ type: 'success', message: 'Project added successfully.' })
+    } catch (error) {
+      console.error('Failed to add project:', error)
+      setProjectToast({ type: 'error', message: 'Failed to add project. Please try again.' })
+    } finally {
+      setProjectSaving(false)
+    }
+  }
+
+  async function handleEditProject(
+    projectId: string,
+    payload: {
+      title: string
+      description: string
+      tech_stack: string[]
+      github_link: string
+      demo_link: string
+    }
+  ) {
+    if (!user?.id || !isOwnProfile) return
+    setProjectSaving(true)
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({
+          title: payload.title,
+          description: payload.description,
+          tech_stack: payload.tech_stack,
+          github_link: payload.github_link,
+          demo_link: payload.demo_link,
+        })
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                id: data.id,
+                title: data.title || 'Untitled Project',
+                description: data.description || '',
+                tech_stack: Array.isArray(data.tech_stack) ? data.tech_stack : [],
+                github_link: data.github_link || '',
+                demo_link: data.demo_link || '',
+              }
+            : project
+        )
+      )
+      setProjectToast({ type: 'success', message: 'Project updated successfully.' })
+    } catch (error) {
+      console.error('Failed to update project:', error)
+      setProjectToast({ type: 'error', message: 'Failed to update project. Please try again.' })
+    } finally {
+      setProjectSaving(false)
+    }
+  }
+
+  async function handleDeleteProject(projectId: string) {
+    if (!user?.id || !isOwnProfile) return
+    setProjectSaving(true)
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setProjects((prev) => prev.filter((project) => project.id !== projectId))
+      setProjectToast({ type: 'success', message: 'Project deleted successfully.' })
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+      setProjectToast({ type: 'error', message: 'Failed to delete project. Please try again.' })
+    } finally {
+      setProjectSaving(false)
+    }
+  }
+
   return (
     <section className="py-12 px-6">
       <div className="max-w-5xl mx-auto">
+        {projectToast && (
+          <div
+            className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+              projectToast.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                : 'bg-red-500/10 border-red-500/30 text-red-300'
+            }`}
+          >
+            {projectToast.message}
+          </div>
+        )}
+
         <ProfileHeader
           profile={profile}
           email={isOwnProfile ? user?.email : undefined}
@@ -245,7 +384,14 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
               ? profile.skills.filter((s: unknown) => typeof s === 'string' && (s as string).trim())
               : []}
           />
-          <ProfileProjects projects={projects} />
+          <ProfileProjects
+            projects={projects}
+            isOwnProfile={isOwnProfile}
+            saving={projectSaving}
+            onAddProject={handleAddProject}
+            onEditProject={handleEditProject}
+            onDeleteProject={handleDeleteProject}
+          />
           <ProfileActivity teamsJoined={teamsJoined} teamsCreated={teamsCreated} />
           <ProfileAchievements achievements={achievements} />
           <ProfileLinks github={profile?.github} linkedin={profile?.linkedin} leetcode={profile?.leetcode} />

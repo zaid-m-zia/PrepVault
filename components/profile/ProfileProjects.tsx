@@ -1,71 +1,75 @@
-export type ProfileProject = {
-  id: string
-  title: string
-  description: string
-  tech_stack: string[]
-  github_link: string
-  demo_link: string
-}
+import { useState } from 'react'
+import Button from '../ui/Button'
+import ProjectList from './ProjectList'
+import AddProjectModal from './AddProjectModal'
+import EditProjectModal from './EditProjectModal'
+import type { ProfileProject, ProjectPayload } from './projectTypes'
 
 type ProfileProjectsProps = {
   projects: ProfileProject[]
+  isOwnProfile?: boolean
+  saving?: boolean
+  onAddProject?: (payload: ProjectPayload) => Promise<void>
+  onEditProject?: (projectId: string, payload: ProjectPayload) => Promise<void>
+  onDeleteProject?: (projectId: string) => Promise<void>
 }
 
-export default function ProfileProjects({ projects }: ProfileProjectsProps) {
+export type { ProfileProject, ProjectPayload }
+
+export default function ProfileProjects({
+  projects,
+  isOwnProfile = false,
+  saving = false,
+  onAddProject,
+  onEditProject,
+  onDeleteProject,
+}: ProfileProjectsProps) {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<ProfileProject | null>(null)
+
   return (
     <div className="glass rounded-xl p-6 border border-white/10">
-      <h2 className="text-sm font-semibold text-secondary-text mb-3">Projects</h2>
-      {projects.length === 0 ? (
-        <p className="text-sm text-secondary-text">No projects added yet.</p>
-      ) : (
-        <div className="space-y-3">
-          {projects.map((project) => (
-            <article key={project.id} className="rounded-lg border border-white/10 bg-white/3 p-4">
-              <h3 className="text-base font-semibold">{project.title}</h3>
-              {project.description && (
-                <p className="mt-2 text-sm text-secondary-text" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                  {project.description}
-                </p>
-              )}
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <h2 className="text-sm font-semibold text-secondary-text">Projects</h2>
+        {isOwnProfile && (
+          <Button size="sm" onClick={() => setIsAddOpen(true)}>
+            Add Project
+          </Button>
+        )}
+      </div>
 
-              {project.tech_stack.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {project.tech_stack.map((tech) => (
-                    <span key={`${project.id}-${tech}`} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              )}
+      <ProjectList
+        projects={projects}
+        canEdit={isOwnProfile}
+        onEdit={(project) => setEditingProject(project)}
+        onDelete={(projectId) => {
+          const shouldDelete = window.confirm('Are you sure you want to delete this project?')
+          if (!shouldDelete) return
+          if (!onDeleteProject) return
+          void onDeleteProject(projectId)
+        }}
+      />
 
-              {(project.github_link || project.demo_link) && (
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {project.github_link && (
-                    <a
-                      href={project.github_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs px-3 py-1.5 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition"
-                    >
-                      GitHub
-                    </a>
-                  )}
-                  {project.demo_link && (
-                    <a
-                      href={project.demo_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs px-3 py-1.5 rounded-full bg-white/3 text-secondary-text hover:text-white hover:bg-white/10 transition"
-                    >
-                      Live Demo
-                    </a>
-                  )}
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
+      <AddProjectModal
+        open={isAddOpen}
+        loading={saving}
+        onClose={() => setIsAddOpen(false)}
+        onSubmit={async (payload) => {
+          if (!onAddProject) return
+          await onAddProject(payload)
+        }}
+      />
+
+      <EditProjectModal
+        open={Boolean(editingProject)}
+        project={editingProject}
+        loading={saving}
+        onClose={() => setEditingProject(null)}
+        onSubmit={async (projectId, payload) => {
+          if (!onEditProject) return
+          await onEditProject(projectId, payload)
+        }}
+      />
     </div>
   )
 }
