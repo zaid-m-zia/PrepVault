@@ -57,7 +57,7 @@ function ChatContent() {
       // Get all distinct users the current user has messaged with
       const { data: messages, error: err } = await supabase
         .from('messages')
-        .select('sender_id, receiver_id, message, created_at')
+        .select('sender_id, receiver_id, message, created_at, deleted')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: false })
 
@@ -72,7 +72,7 @@ function ChatContent() {
           conversationMap.set(partnerId, {
             userId: partnerId,
             username: '',
-            lastMessage: msg.message,
+            lastMessage: msg.deleted ? 'message deleted' : msg.message,
             lastMessageTime: new Date(msg.created_at).toLocaleString(),
           })
         }

@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import supabase from '../../lib/supabaseClient'
 import { createNotification } from '../../lib/notifications'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
 import MessageLimitPopup from './MessageLimitPopup'
-import Link from 'next/link'
+import { ChevronDown } from 'lucide-react'
 
 type Message = {
   id: string
@@ -14,6 +15,9 @@ type Message = {
   receiver_id: string
   message: string
   created_at: string
+  edited?: boolean | null
+  deleted?: boolean | null
+  reply_to?: string | null
 }
 
 type ChatUser = {
@@ -29,6 +33,10 @@ type ChatWindowProps = {
   onConversationUpdated: () => void
 }
 
+function isNearBottom(container: HTMLDivElement) {
+  return container.scrollHeight - container.scrollTop - container.clientHeight < 100
+}
+
 export default function ChatWindow({
   currentUserId,
   selectedUserId,
@@ -40,13 +48,49 @@ export default function ChatWindow({
   const [showLimitPopup, setShowLimitPopup] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [replyToMessageId, setReplyToMessageId] = useState<string | null>(null)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const shouldAutoScrollRef = useRef(true)
+
+  const messageById = useMemo(() => {
+    return new Map(messages.map((msg) => [msg.id, msg]))
+  }, [messages])
+
+  const editingMessage = useMemo(() => {
+    if (!editingMessageId) return null
+    const message = messageById.get(editingMessageId)
+    if (!message || message.sender_id !== currentUserId || message.deleted) return null
+    return { id: message.id, message: message.message }
+  }, [editingMessageId, messageById, currentUserId])
+
+  const replyingTo = useMemo(() => {
+    if (!replyToMessageId) return null
+    const message = messageById.get(replyToMessageId)
+    if (!message || message.deleted) return null
+    return { id: message.id, message: message.message, sender_id: message.sender_id }
+  }, [replyToMessageId, messageById])
+
+  function scrollToBottom(force = false) {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    if (force || shouldAutoScrollRef.current || isNearBottom(container)) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+      shouldAutoScrollRef.current = true
+      setShowJumpToLatest(false)
+    }
+  }
 
   useEffect(() => {
     async function initialize() {
       setLoading(true)
+      setEditingMessageId(null)
+      setReplyToMessageId(null)
+
       try {
-        // Fetch selected user profile
         const { data: userProfile } = await supabase
           .from('profiles')
           .select('id, username, full_name, bio')
@@ -57,7 +101,6 @@ export default function ChatWindow({
           setSelectedUser(userProfile)
         }
 
-        // Check follow status
         const { data: followData } = await supabase
           .from('followers')
           .select('id')
@@ -67,9 +110,7 @@ export default function ChatWindow({
 
         setIsFollowing(Boolean(followData?.id))
 
-        // Fetch messages
-        await fetchMessages()
-
+        await fetchMessages(true)
       } catch (err) {
         console.error('Error initializing chat window:', err)
       } finally {
@@ -82,15 +123,15 @@ export default function ChatWindow({
 
   useEffect(() => {
     const channel = supabase
-      .channel('messages')
+      .channel(`messages-${currentUserId}-${selectedUserId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
         },
-        (payload: { new: Message }) => {
+        (payload: { eventType: string; new: Message }) => {
           const incomingMessage = payload.new as Message
           const isCurrentChatMessage =
             (incomingMessage.sender_id === currentUserId && incomingMessage.receiver_id === selectedUserId) ||
@@ -98,15 +139,19 @@ export default function ChatWindow({
 
           if (!isCurrentChatMessage) return
 
-          setMessages((prev) => {
-            if (prev.some((msg) => msg.id === incomingMessage.id)) {
-              return prev
-            }
-            return [...prev, incomingMessage]
-          })
+          if (payload.eventType === 'INSERT') {
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === incomingMessage.id)) return prev
+              return [...prev, incomingMessage]
+            })
 
-          if (incomingMessage.sender_id === currentUserId) {
-            setMessageCount((prev) => prev + 1)
+            if (incomingMessage.sender_id === currentUserId) {
+              setMessageCount((prev) => prev + 1)
+            }
+          }
+
+          if (payload.eventType === 'UPDATE') {
+            setMessages((prev) => prev.map((msg) => (msg.id === incomingMessage.id ? { ...msg, ...incomingMessage } : msg)))
           }
 
           onConversationUpdated()
@@ -120,10 +165,10 @@ export default function ChatWindow({
   }, [currentUserId, selectedUserId, onConversationUpdated])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottom(false)
   }, [messages])
 
-  async function fetchMessages() {
+  async function fetchMessages(forceScroll = false) {
     try {
       const { data } = await supabase
         .from('messages')
@@ -133,22 +178,23 @@ export default function ChatWindow({
         )
         .order('created_at', { ascending: true })
 
-      setMessages(data || [])
+      const resolvedMessages = (data || []) as Message[]
+      setMessages(resolvedMessages)
 
-      // Count messages sent by current user to selected user
-      const sentCount = (data || []).filter(
-        (m: any) => m.sender_id === currentUserId && m.receiver_id === selectedUserId
+      const sentCount = resolvedMessages.filter(
+        (message) => message.sender_id === currentUserId && message.receiver_id === selectedUserId
       ).length
 
       setMessageCount(sentCount)
+
+      requestAnimationFrame(() => scrollToBottom(forceScroll))
     } catch (err) {
       console.error('Error fetching messages:', err)
     }
   }
 
-  async function handleSendMessage(text: string) {
+  async function handleSendMessage(text: string, replyToId?: string | null) {
     try {
-      // Check if user has reached 2-message limit (only if not following)
       if (!isFollowing && messageCount >= 2) {
         setShowLimitPopup(true)
         return
@@ -160,6 +206,7 @@ export default function ChatWindow({
           sender_id: currentUserId,
           receiver_id: selectedUserId,
           message: text,
+          reply_to: replyToId || null,
         })
 
       if (error) throw error
@@ -174,13 +221,84 @@ export default function ChatWindow({
         console.error('Error creating DM notification:', notificationError)
       }
 
-      // Check if limit reached after sending
       if (!isFollowing && messageCount + 1 >= 2) {
         setShowLimitPopup(true)
       }
     } catch (err) {
       console.error('Error sending message:', err)
+      throw err
     }
+  }
+
+  async function handleUpdateMessage(messageId: string, newText: string) {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({
+          message: newText,
+          edited: true,
+        })
+        .eq('id', messageId)
+        .eq('sender_id', currentUserId)
+
+      if (error) throw error
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === messageId
+            ? {
+                ...message,
+                message: newText,
+                edited: true,
+              }
+            : message
+        )
+      )
+    } catch (err) {
+      console.error('Error updating message:', err)
+      throw err
+    }
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ deleted: true })
+        .eq('id', messageId)
+        .eq('sender_id', currentUserId)
+
+      if (error) throw error
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === messageId
+            ? {
+                ...message,
+                deleted: true,
+              }
+            : message
+        )
+      )
+
+      if (editingMessageId === messageId) {
+        setEditingMessageId(null)
+      }
+
+      if (replyToMessageId === messageId) {
+        setReplyToMessageId(null)
+      }
+    } catch (err) {
+      console.error('Error deleting message:', err)
+    }
+  }
+
+  function handleMessagesScroll() {
+    const container = messagesContainerRef.current
+    if (!container) return
+    const nearBottom = isNearBottom(container)
+    shouldAutoScrollRef.current = nearBottom
+    setShowJumpToLatest(!nearBottom)
   }
 
   if (loading) {
@@ -193,7 +311,6 @@ export default function ChatWindow({
 
   return (
     <div className="flex flex-1 flex-col bg-white shadow-sm dark:bg-slate-900 dark:shadow-none">
-      {/* Header */}
       <div className="border-b border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -222,25 +339,60 @@ export default function ChatWindow({
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 space-y-4 overflow-y-auto bg-white p-6 dark:bg-slate-900">
-        {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
-            <p>No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              isCurrentUser={msg.sender_id === currentUserId}
-            />
-          ))
+      <div className="relative flex-1">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleMessagesScroll}
+          className="h-full space-y-4 overflow-y-auto bg-white p-6 dark:bg-slate-900"
+        >
+          {messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+              <p>No messages yet. Start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const replyPreviewMessage = msg.reply_to ? messageById.get(msg.reply_to) : null
+              const replyPreview = replyPreviewMessage
+                ? replyPreviewMessage.deleted
+                  ? 'message deleted'
+                  : replyPreviewMessage.message
+                : null
+
+              return (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isCurrentUser={msg.sender_id === currentUserId}
+                  replyPreview={replyPreview}
+                  onReply={(messageId) => {
+                    setReplyToMessageId(messageId)
+                    setEditingMessageId(null)
+                  }}
+                  onEdit={(messageId) => {
+                    const targetMessage = messageById.get(messageId)
+                    if (!targetMessage || targetMessage.sender_id !== currentUserId || targetMessage.deleted) return
+                    setEditingMessageId(messageId)
+                    setReplyToMessageId(null)
+                  }}
+                  onDelete={handleDeleteMessage}
+                />
+              )
+            })
+          )}
+        </div>
+
+        {showJumpToLatest && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="absolute bottom-4 right-4 inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-white px-3 py-2 text-xs font-medium text-indigo-600 shadow-md transition-colors hover:bg-indigo-50 dark:border-indigo-400/40 dark:bg-slate-800 dark:text-indigo-300 dark:hover:bg-slate-700"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            Latest
+          </button>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Limit Warning */}
       {showLimitPopup && (
         <MessageLimitPopup
           recipientId={selectedUser?.id || ''}
@@ -249,10 +401,15 @@ export default function ChatWindow({
         />
       )}
 
-      {/* Input Area */}
       <div className="border-t border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
         <MessageInput
           onSendMessage={handleSendMessage}
+          onUpdateMessage={handleUpdateMessage}
+          editingMessage={editingMessage}
+          replyingTo={replyingTo}
+          currentUserId={currentUserId}
+          onCancelEdit={() => setEditingMessageId(null)}
+          onCancelReply={() => setReplyToMessageId(null)}
           disabled={!isFollowing && messageCount >= 2}
           disabledReason={!isFollowing && messageCount >= 2 ? 'Message limit reached' : undefined}
         />

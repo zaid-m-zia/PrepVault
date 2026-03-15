@@ -24,6 +24,7 @@
     "@tsparticles/slim": "^3.9.1",
     "@vercel/analytics": "^1.6.1",
     "clsx": "^1.2.1",
+    "emoji-picker-react": "^4.18.0",
     "framer-motion": "^12.35.2",
     "lucide-react": "^0.562.0",
     "next": "^14.0.0",
