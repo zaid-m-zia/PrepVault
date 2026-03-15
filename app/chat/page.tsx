@@ -13,6 +13,7 @@ type Conversation = {
   full_name?: string
   lastMessage?: string
   lastMessageTime?: string
+  unreadCount?: number
 }
 
 function ChatContent() {
@@ -52,6 +53,42 @@ function ChatContent() {
     initialize()
   }, [searchParams])
 
+  useEffect(() => {
+    if (!currentUser?.id) return
+
+    const channel = supabase
+      .channel(`chat-list-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${currentUser.id}`,
+        },
+        () => {
+          void fetchConversations(currentUser.id)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${currentUser.id}`,
+        },
+        () => {
+          void fetchConversations(currentUser.id)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUser?.id])
+
   async function fetchConversations(userId: string) {
     try {
       // Get all distinct users the current user has messaged with
@@ -78,6 +115,17 @@ function ChatContent() {
         }
       }
 
+      const { data: unreadMessages } = await supabase
+        .from('messages')
+        .select('sender_id')
+        .eq('receiver_id', userId)
+        .eq('seen', false)
+
+      const unreadBySender = new Map<string, number>()
+      for (const unread of unreadMessages || []) {
+        unreadBySender.set(unread.sender_id, (unreadBySender.get(unread.sender_id) || 0) + 1)
+      }
+
       // Fetch partner profiles
       const partnerIds = Array.from(conversationMap.keys())
       if (partnerIds.length > 0) {
@@ -91,6 +139,7 @@ function ChatContent() {
           if (conv) {
             conv.username = profile.username
             conv.full_name = profile.full_name
+            conv.unreadCount = unreadBySender.get(profile.id) || 0
           }
         })
       }

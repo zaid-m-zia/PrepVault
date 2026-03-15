@@ -18,6 +18,9 @@ type MessageBubbleProps = {
   onReply: (messageId: string) => void
   onEdit: (messageId: string) => void
   onDelete: (messageId: string) => void
+  onToggleReaction: (messageId: string, emoji: string) => void
+  reactions: Array<{ emoji: string; count: number; reactedByCurrentUser: boolean }>
+  deliveryStatus?: 'sent' | 'delivered' | 'seen'
 }
 
 export default function MessageBubble({
@@ -27,6 +30,9 @@ export default function MessageBubble({
   onReply,
   onEdit,
   onDelete,
+  onToggleReaction,
+  reactions,
+  deliveryStatus,
 }: MessageBubbleProps) {
   const createdAt = new Date(message.created_at)
   const timeString = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -41,8 +47,20 @@ export default function MessageBubble({
     >
       <div className="relative max-w-xs lg:max-w-md">
         {!isDeleted && (
-          <div className={`absolute -top-8 ${isCurrentUser ? 'right-0' : 'left-0'} opacity-0 transition-opacity group-hover:opacity-100`}>
+          <div className={`absolute -top-8 ${isCurrentUser ? 'right-0' : 'left-0'} z-10 opacity-0 transition-opacity group-hover:opacity-100`}>
             <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-1 py-1 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              {['👍', '❤️', '😂', '🔥', '👏'].map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => onToggleReaction(message.id, emoji)}
+                  className="rounded p-1 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+                  aria-label={`React with ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+
               <button
                 type="button"
                 onClick={() => onReply(message.id)}
@@ -94,7 +112,32 @@ export default function MessageBubble({
           <p className={`mt-1 text-xs ${isCurrentUser ? 'text-slate-500 dark:text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
             {timeString}
             {message.edited && !isDeleted ? ' · edited' : ''}
+            {isCurrentUser && !isDeleted && (
+              <span className={`ml-2 font-medium ${deliveryStatus === 'seen' ? 'text-sky-400 dark:text-sky-300' : ''}`}>
+                {deliveryStatus === 'sent' ? '✓' : '✓✓'}
+              </span>
+            )}
           </p>
+
+          {!isDeleted && reactions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {reactions.map((reaction) => (
+                <button
+                  key={reaction.emoji}
+                  type="button"
+                  onClick={() => onToggleReaction(message.id, reaction.emoji)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${
+                    reaction.reactedByCurrentUser
+                      ? 'border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-500/20 dark:text-indigo-300'
+                      : 'border-gray-200 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300'
+                  }`}
+                >
+                  <span>{reaction.emoji}</span>
+                  <span>{reaction.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

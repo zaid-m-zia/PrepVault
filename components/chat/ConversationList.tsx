@@ -9,6 +9,7 @@ type Conversation = {
   full_name?: string
   lastMessage?: string
   lastMessageTime?: string
+  unreadCount?: number
 }
 
 type ConversationListProps = {
@@ -59,13 +60,20 @@ export default function ConversationList({
                       .toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/profile/${conv.userId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="line-clamp-1 font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
-                    >
-                      {conv.full_name || conv.username}
-                    </Link>
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/profile/${conv.userId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="line-clamp-1 font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
+                      >
+                        {conv.full_name || conv.username}
+                      </Link>
+                      {(conv.unreadCount || 0) > 0 && (
+                        <span className="inline-flex min-w-[1.2rem] h-5 px-1.5 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-semibold leading-none">
+                          {conv.unreadCount && conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">@{conv.username}</p>
                   </div>
                 </div>

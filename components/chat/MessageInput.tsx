@@ -9,6 +9,7 @@ import { buttonClasses } from '../ui/Button'
 type MessageInputProps = {
   onSendMessage: (text: string, replyToId?: string | null) => Promise<void>
   onUpdateMessage: (messageId: string, text: string) => Promise<void>
+  onTypingChange: (isTyping: boolean) => void
   editingMessage: { id: string; message: string } | null
   replyingTo: { id: string; message: string; sender_id: string } | null
   currentUserId: string
@@ -21,6 +22,7 @@ type MessageInputProps = {
 export default function MessageInput({
   onSendMessage,
   onUpdateMessage,
+  onTypingChange,
   editingMessage,
   replyingTo,
   currentUserId,
@@ -57,6 +59,7 @@ export default function MessageInput({
         await onSendMessage(message.trim(), replyingTo?.id || null)
         onCancelReply()
       }
+      onTypingChange(false)
       setMessage('')
       setShowEmojiPicker(false)
     } catch (err) {
@@ -127,7 +130,12 @@ export default function MessageInput({
         <input
           type="text"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value
+            setMessage(value)
+            onTypingChange(value.trim().length > 0)
+          }}
+          onBlur={() => onTypingChange(false)}
           placeholder={
             disabled
               ? 'Follow to continue messaging'
