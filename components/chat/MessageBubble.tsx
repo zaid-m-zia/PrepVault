@@ -6,7 +6,7 @@ type MessageBubbleProps = {
   message: {
     id: string
     sender_id: string
-    content: string
+    message: string
     created_at: string
   }
   isCurrentUser: boolean
@@ -30,7 +30,7 @@ export default function MessageBubble({ message, isCurrentUser }: MessageBubbleP
             : 'border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none'
         }`}
       >
-        <p className="text-sm break-words text-slate-800 dark:text-slate-200">{message.content}</p>
+        <p className="text-sm break-words text-slate-800 dark:text-slate-200">{message.message}</p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{timeString}</p>
       </div>
     </motion.div>

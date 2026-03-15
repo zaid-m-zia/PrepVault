@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import { createNotification } from '../../lib/notifications'
 import MessageBubble from './MessageBubble'
@@ -11,10 +11,9 @@ import Link from 'next/link'
 type Message = {
   id: string
   sender_id: string
-  recipient_id: string
-  content: string
+  receiver_id: string
+  message: string
   created_at: string
-  is_read: boolean
 }
 
 type ChatUser = {
@@ -41,6 +40,7 @@ export default function ChatWindow({
   const [showLimitPopup, setShowLimitPopup] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function initialize() {
@@ -70,12 +70,6 @@ export default function ChatWindow({
         // Fetch messages
         await fetchMessages()
 
-        // Mark messages as read
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('recipient_id', currentUserId)
-          .eq('sender_id', selectedUserId)
       } catch (err) {
         console.error('Error initializing chat window:', err)
       } finally {
@@ -86,13 +80,56 @@ export default function ChatWindow({
     initialize()
   }, [selectedUserId, currentUserId])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload: { new: Message }) => {
+          const incomingMessage = payload.new as Message
+          const isCurrentChatMessage =
+            (incomingMessage.sender_id === currentUserId && incomingMessage.receiver_id === selectedUserId) ||
+            (incomingMessage.sender_id === selectedUserId && incomingMessage.receiver_id === currentUserId)
+
+          if (!isCurrentChatMessage) return
+
+          setMessages((prev) => {
+            if (prev.some((msg) => msg.id === incomingMessage.id)) {
+              return prev
+            }
+            return [...prev, incomingMessage]
+          })
+
+          if (incomingMessage.sender_id === currentUserId) {
+            setMessageCount((prev) => prev + 1)
+          }
+
+          onConversationUpdated()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUserId, selectedUserId, onConversationUpdated])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
   async function fetchMessages() {
     try {
       const { data } = await supabase
         .from('messages')
         .select('*')
         .or(
-          `and(sender_id.eq.${currentUserId},recipient_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},recipient_id.eq.${currentUserId})`
+          `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${currentUserId})`
         )
         .order('created_at', { ascending: true })
 
@@ -100,7 +137,7 @@ export default function ChatWindow({
 
       // Count messages sent by current user to selected user
       const sentCount = (data || []).filter(
-        (m: any) => m.sender_id === currentUserId && m.recipient_id === selectedUserId
+        (m: any) => m.sender_id === currentUserId && m.receiver_id === selectedUserId
       ).length
 
       setMessageCount(sentCount)
@@ -109,7 +146,7 @@ export default function ChatWindow({
     }
   }
 
-  async function handleSendMessage(content: string) {
+  async function handleSendMessage(text: string) {
     try {
       // Check if user has reached 2-message limit (only if not following)
       if (!isFollowing && messageCount >= 2) {
@@ -117,32 +154,25 @@ export default function ChatWindow({
         return
       }
 
-      // Send message
-      const { error } = await supabase.from('messages').insert({
-        sender_id: currentUserId,
-        recipient_id: selectedUserId,
-        content,
-        is_read: false,
-      })
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: currentUserId,
+          receiver_id: selectedUserId,
+          message: text,
+        })
 
       if (error) throw error
 
       const { error: notificationError } = await createNotification({
         user_id: selectedUserId,
         type: 'message',
-        content: `NEW_DM:${currentUserId}:${content.slice(0, 120)}`,
+        content: `NEW_DM:${currentUserId}:${text.slice(0, 120)}`,
       })
 
       if (notificationError) {
         console.error('Error creating DM notification:', notificationError)
       }
-
-      // Update local state
-      setMessageCount((prev) => prev + 1)
-
-      // Refresh messages and conversation list
-      await fetchMessages()
-      onConversationUpdated()
 
       // Check if limit reached after sending
       if (!isFollowing && messageCount + 1 >= 2) {
@@ -207,6 +237,7 @@ export default function ChatWindow({
             />
           ))
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Limit Warning */}
