@@ -60,7 +60,7 @@ export default function ConversationList({
                   </div>
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/profile/${conv.username}`}
+                      href={`/profile/${conv.userId}`}
                       onClick={(e) => e.stopPropagation()}
                       className="line-clamp-1 font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
                     >

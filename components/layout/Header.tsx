@@ -128,7 +128,7 @@ export default function Header(): JSX.Element {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:bg-slate-950/80 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+      <div className="max-w-[88rem] mx-auto pl-6 pr-3 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
@@ -138,13 +138,13 @@ export default function Header(): JSX.Element {
           </Link>
         </div>
 
-        <div className="flex-1 hidden lg:flex justify-center px-4">
-          <div className="w-full max-w-2xl">
+        <div className="flex-1 hidden lg:flex justify-center px-2 lg:px-3">
+          <div className="w-full max-w-3xl">
             <SearchBar />
           </div>
         </div>
 
-        <nav aria-label="Main navigation" className="flex items-center gap-3">
+        <nav aria-label="Main navigation" className="flex items-center gap-3 lg:ml-2">
           <ul className="hidden md:flex items-center gap-1 text-sm">
             {navItems.map((item) => {
               const active =

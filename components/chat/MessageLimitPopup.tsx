@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { buttonClasses } from '../ui/Button'
 
 type MessageLimitPopupProps = {
+  recipientId: string
   recipientUsername: string
   onClose: () => void
 }
 
 export default function MessageLimitPopup({
+  recipientId,
   recipientUsername,
   onClose,
 }: MessageLimitPopupProps) {
@@ -39,7 +41,7 @@ export default function MessageLimitPopup({
 
         <div className="space-y-3">
           <Link
-            href={`/profile/${recipientUsername}`}
+            href={`/profile/${recipientId}`}
             className={buttonClasses({ fullWidth: true, size: 'md', className: 'text-center' })}
           >
             View Profile & Follow

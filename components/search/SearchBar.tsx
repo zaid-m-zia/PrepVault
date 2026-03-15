@@ -347,13 +347,13 @@ export default function SearchBar({ className = 'hidden md:flex items-center gap
               transition={{ duration: 0.2 }}
               className="absolute left-0 top-full mt-2 w-full z-50 glass rounded-lg border border-gray-200 dark:border-slate-700 shadow-lg p-3"
             >
-              <div className="flex gap-3 items-center">
+              <div className="grid grid-cols-4 gap-2 items-center">
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`flex-1 text-center px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    className={`w-full min-w-0 text-center px-3 py-2 rounded-lg text-sm font-medium transition ${
                       category === cat.id
                         ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-md'
                         : 'bg-gray-100 text-slate-700 hover:bg-gray-200 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'

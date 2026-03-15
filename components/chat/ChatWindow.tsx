@@ -176,7 +176,7 @@ export default function ChatWindow({
             </div>
             <div>
               <Link
-                href={`/profile/${selectedUser?.username}`}
+                href={`/profile/${selectedUser?.id}`}
                 className="font-semibold text-slate-800 transition-colors hover:text-indigo-500 dark:text-slate-200 dark:hover:text-cyan-400"
               >
                 {selectedUser?.full_name || selectedUser?.username}
@@ -212,6 +212,7 @@ export default function ChatWindow({
       {/* Message Limit Warning */}
       {showLimitPopup && (
         <MessageLimitPopup
+          recipientId={selectedUser?.id || ''}
           recipientUsername={selectedUser?.username || 'User'}
           onClose={() => setShowLimitPopup(false)}
         />
