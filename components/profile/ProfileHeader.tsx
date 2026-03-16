@@ -10,6 +10,8 @@ type ProfileHeaderProps = {
   teamsJoined: number
   teamsCreated: number
   actions?: ReactNode
+  onFollowersClick?: () => void
+  onFollowingClick?: () => void
 }
 
 export default function ProfileHeader({
@@ -21,6 +23,8 @@ export default function ProfileHeader({
   teamsJoined,
   teamsCreated,
   actions,
+  onFollowersClick,
+  onFollowingClick,
 }: ProfileHeaderProps) {
   return (
     <div className="glass rounded-xl p-8 border border-white/10 mb-8">
@@ -52,14 +56,24 @@ export default function ProfileHeader({
           )}
 
           <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm">
-            <div>
+            <button
+              type="button"
+              onClick={onFollowersClick}
+              className="text-left hover:opacity-75 transition-opacity disabled:cursor-default"
+              disabled={!onFollowersClick}
+            >
               <span className="font-semibold text-slate-900 dark:text-white">{followerCount}</span>
               <span className="text-secondary-text ml-1">Followers</span>
-            </div>
-            <div>
+            </button>
+            <button
+              type="button"
+              onClick={onFollowingClick}
+              className="text-left hover:opacity-75 transition-opacity disabled:cursor-default"
+              disabled={!onFollowingClick}
+            >
               <span className="font-semibold text-slate-900 dark:text-white">{followingCount}</span>
               <span className="text-secondary-text ml-1">Following</span>
-            </div>
+            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">

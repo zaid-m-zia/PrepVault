@@ -93,13 +93,13 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
         .maybeSingle()
 
       if (!existingNotification) {
-        const userName = session.user.user_metadata?.full_name || session.user.email || 'Someone'
+        const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.username || session.user.email || 'Someone'
         const { error: notificationError } = await createNotification({
           user_id: profileId,
           actor_id: session.user.id,
           type: 'follow_request',
           entity_id: createdRequest.id,
-          content: `FOLLOW_REQUEST:${createdRequest.id}:${session.user.id}:${userName}`,
+          content: `${userName} sent you a follow request`,
           read: false,
           dedupe: true,
         })

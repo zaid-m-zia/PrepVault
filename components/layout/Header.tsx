@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Bell } from 'lucide-react';
 import supabase from '../../lib/supabaseClient';
 import SearchBar from '../search/SearchBar';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -163,12 +163,17 @@ export default function Header(): JSX.Element {
                     }`}
                   >
                     <span className="inline-flex items-center gap-2">
-                      <span>{item.label}</span>
-                      {item.href === '/notifications' && unreadNotifications > 0 && (
-                        <span className="inline-flex min-w-[1.2rem] h-5 px-1.5 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-semibold leading-none">
-                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      {item.href === '/notifications' ? (
+                        <span className="relative">
+                          <Bell className="h-4 w-4" />
+                          {unreadNotifications > 0 && (
+                            <span className="absolute -top-2 -right-2.5 inline-flex min-w-[1.1rem] h-[1.1rem] px-1 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      ) : null}
+                      <span>{item.label}</span>
                     </span>
                   </Link>
                 </li>
@@ -233,12 +238,17 @@ export default function Header(): JSX.Element {
                         }`}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <span>{item.label}</span>
-                          {item.href === '/notifications' && unreadNotifications > 0 && (
-                            <span className="inline-flex min-w-[1.2rem] h-5 px-1.5 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-semibold leading-none">
-                              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                          {item.href === '/notifications' ? (
+                            <span className="relative">
+                              <Bell className="h-4 w-4" />
+                              {unreadNotifications > 0 && (
+                                <span className="absolute -top-2 -right-2.5 inline-flex min-w-[1.1rem] h-[1.1rem] px-1 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                                </span>
+                              )}
                             </span>
-                          )}
+                          ) : null}
+                          <span>{item.label}</span>
                         </span>
                       </Link>
                     </li>

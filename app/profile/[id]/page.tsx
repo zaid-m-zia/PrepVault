@@ -15,6 +15,7 @@ import ProfileActivity from '../../../components/profile/ProfileActivity'
 import ProfileAchievements, { type ProfileAchievement } from '../../../components/profile/ProfileAchievements'
 import ProfileLinks from '../../../components/profile/ProfileLinks'
 import Button from '../../../components/ui/Button'
+import FollowListModal from '../../../components/profile/FollowListModal'
 
 export default function UserProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<any>(null)
@@ -30,6 +31,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [teamsJoined, setTeamsJoined] = useState(0)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const [followListModal, setFollowListModal] = useState<{ type: 'followers' | 'following' } | null>(null)
   const router = useRouter()
 
   async function refetchProfile(profileId: string) {
@@ -144,6 +146,43 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
     }
 
     fetchData()
+  }, [params.id])
+
+  useEffect(() => {
+    const profileId = params.id
+
+    async function refreshFollowerCounts() {
+      const [{ count: followers }, { count: following }] = await Promise.all([
+        supabase
+          .from('followers')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', profileId),
+        supabase
+          .from('followers')
+          .select('*', { count: 'exact', head: true })
+          .eq('follower_id', profileId),
+      ])
+      setFollowerCount(followers || 0)
+      setFollowingCount(following || 0)
+    }
+
+    const channel = supabase
+      .channel(`followers-counts-${profileId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'followers', filter: `following_id=eq.${profileId}` },
+        () => { void refreshFollowerCounts() }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'followers', filter: `following_id=eq.${profileId}` },
+        () => { void refreshFollowerCounts() }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [params.id])
 
   useEffect(() => {
@@ -345,6 +384,8 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
           projectsCount={projects.length}
           teamsJoined={teamsJoined}
           teamsCreated={teamsCreated}
+          onFollowersClick={() => setFollowListModal({ type: 'followers' })}
+          onFollowingClick={() => setFollowListModal({ type: 'following' })}
           actions={
             <>
               {!isOwnProfile && user && (
@@ -424,6 +465,14 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
         {isOwnProfile && <SuggestedEngineers />}
       </div>
+
+      <FollowListModal
+        isOpen={followListModal !== null}
+        onClose={() => setFollowListModal(null)}
+        profileId={profile.id}
+        currentUserId={user?.id ?? null}
+        type={followListModal?.type ?? 'followers'}
+      />
     </section>
   )
 }

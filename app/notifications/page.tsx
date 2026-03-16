@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import supabase from '../../lib/supabaseClient'
 import { createNotification } from '../../lib/notifications'
 import Button from '../../components/ui/Button'
+import Avatar from '../../components/ui/Avatar'
 
 type Notification = {
   id: string
@@ -22,6 +23,7 @@ type ProfileLite = {
   id: string
   username: string
   full_name?: string | null
+  avatar_url?: string | null
 }
 
 function parseMessagePreview(content: string) {
@@ -56,6 +58,12 @@ export default function NotificationsPage() {
 
         setUser(session.user)
         await fetchNotifications(session.user.id)
+        void supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('user_id', session.user.id)
+          .eq('read', false)
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       } catch (error) {
         console.error('Failed to initialize notifications page:', error)
       } finally {
@@ -109,7 +117,7 @@ export default function NotificationsPage() {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, full_name')
+      .select('id, username, full_name, avatar_url')
       .in('id', uniqueIds)
 
     if (error) {
@@ -208,7 +216,8 @@ export default function NotificationsPage() {
       }
     }
 
-    await markAsRead(notification.id)
+    // Delete the notification and remove from local state
+    await deleteNotification(notification.id)
 
     const actorProfile = profilesById[notification.actor_id]
     const actorName = actorProfile?.full_name || actorProfile?.username || 'Someone'
@@ -222,6 +231,20 @@ export default function NotificationsPage() {
       read: false,
       dedupe: true,
     })
+  }
+
+  async function deleteNotification(notificationId: string) {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId)
+
+    if (error) {
+      console.error('Failed to delete notification:', error)
+      return
+    }
+
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
   }
 
   async function rejectFollowRequest(notification: Notification) {
@@ -246,7 +269,8 @@ export default function NotificationsPage() {
     const actorName = actor?.full_name || actor?.username || 'Someone'
 
     if (notification.type === 'message') {
-      return `${actorName}: ${parseMessagePreview(notification.content)}`
+      const preview = parseMessagePreview(notification.content)
+      return `New direct message from ${actorName}: ${preview}`
     }
 
     if (notification.type === 'follow_request') {
@@ -338,9 +362,17 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                      {actorInitials(notification)}
-                    </div>
+                    {notification.actor_id && profilesById[notification.actor_id] ? (
+                      <Avatar
+                        user={profilesById[notification.actor_id]}
+                        size="small"
+                        className="flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 flex-shrink-0">
+                        U
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="text-sm text-slate-800 dark:text-slate-100">{renderNotificationText(notification)}</p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -349,31 +381,68 @@ export default function NotificationsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {notification.type === 'follow_request' && !notification.read && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {notification.type === 'message' && (
                       <>
                         <button
-                          onClick={() => acceptFollowRequest(notification)}
+                          onClick={() => router.push(`/chat?user=${notification.actor_id}`)}
                           className="rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                         >
-                          Accept
+                          Open in Chat
                         </button>
                         <button
-                          onClick={() => rejectFollowRequest(notification)}
+                          onClick={() => deleteNotification(notification.id)}
                           className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                          Reject
+                          Delete
                         </button>
                       </>
                     )}
 
-                    {!notification.read && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        Mark read
-                      </button>
+                    {notification.type === 'follow_request' && (
+                      <>
+                        {!notification.read && (
+                          <>
+                            <button
+                              onClick={() => acceptFollowRequest(notification)}
+                              className="rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => rejectFollowRequest(notification)}
+                              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                              Deny
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+
+                    {notification.type !== 'message' && notification.type !== 'follow_request' && (
+                      <>
+                        {!notification.read && (
+                          <button
+                            onClick={() => markAsRead(notification.id)}
+                            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          Delete
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
