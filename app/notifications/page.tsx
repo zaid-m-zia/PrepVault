@@ -1,60 +1,92 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import supabase from '../../lib/supabaseClient'
 import { createNotification } from '../../lib/notifications'
-import { motion } from 'framer-motion'
 import Button from '../../components/ui/Button'
 
 type Notification = {
   id: string
   user_id: string
-  type: string
+  actor_id?: string | null
+  type: 'message' | 'follow_request' | 'follow_accepted' | string
+  entity_id?: string | null
   content: string
-  related_id?: string
-  is_read: boolean
+  read: boolean
   created_at: string
+}
+
+type ProfileLite = {
+  id: string
+  username: string
+  full_name?: string | null
+}
+
+function parseMessagePreview(content: string) {
+  if (!content.startsWith('NEW_DM:')) return content
+  const parts = content.split(':')
+  if (parts.length < 3) return content
+  return parts.slice(2).join(':')
 }
 
 export default function NotificationsPage() {
   const router = useRouter()
   const [user, setUser] = useState<any | null>(null)
-  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({})
+
+  const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read).length, [notifications])
 
   useEffect(() => {
     let mounted = true
-    let activeUserId: string | null = null
-    async function check() {
-      const { data } = await supabase.auth.getSession()
-      const session = data?.session
+    let currentUserId: string | null = null
 
-      if (!mounted) return
-      if (!session) {
-        setLoading(false)
-        return
+    async function initialize() {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const session = data?.session
+
+        if (!mounted) return
+        if (!session) {
+          setLoading(false)
+          return
+        }
+
+        setUser(session.user)
+        currentUserId = session.user.id
+        await fetchNotifications(session.user.id)
+      } catch (error) {
+        console.error('Failed to initialize notifications page:', error)
+      } finally {
+        if (mounted) setLoading(false)
       }
-      setUser(session.user)
-      activeUserId = session.user.id
-      await fetchNotifications(session.user.id)
-      setLoading(false)
     }
-    check()
+
+    initialize()
 
     const channel = supabase
-      .channel('notifications-live')
+      .channel('notifications-insert-live')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
         },
-        async (payload: any) => {
-          const changedUserId = payload?.new?.user_id || payload?.old?.user_id
-          if (mounted && activeUserId && changedUserId === activeUserId) {
-            await fetchNotifications(activeUserId)
+        (payload: { new: Notification }) => {
+          const incoming = payload.new
+          if (!currentUserId || incoming.user_id !== currentUserId) return
+
+          setNotifications((prev) => {
+            if (prev.some((notification) => notification.id === incoming.id)) return prev
+            return [incoming, ...prev]
+          })
+
+          if (incoming.actor_id) {
+            void fetchMissingProfiles([incoming.actor_id])
           }
         }
       )
@@ -66,327 +98,172 @@ export default function NotificationsPage() {
     }
   }, [])
 
-  async function fetchNotifications(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+  async function fetchMissingProfiles(profileIds: string[]) {
+    const uniqueIds = Array.from(new Set(profileIds.filter(Boolean))).filter((id) => !profilesById[id])
+    if (uniqueIds.length === 0) return
 
-      if (error) throw error
-      setNotifications(data || [])
-    } catch (err) {
-      console.error('Error fetching notifications:', err)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, full_name')
+      .in('id', uniqueIds)
+
+    if (error) {
+      console.error('Failed to fetch notification actor profiles:', error)
+      return
     }
+
+    const nextProfiles: Record<string, ProfileLite> = {}
+    for (const profile of data || []) {
+      nextProfiles[profile.id] = profile
+    }
+
+    setProfilesById((prev) => ({ ...prev, ...nextProfiles }))
+  }
+
+  async function fetchNotifications(userId: string) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('id, user_id, actor_id, type, entity_id, content, read, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Failed to fetch notifications:', error)
+      return
+    }
+
+    const rows = (data || []) as Notification[]
+    setNotifications(rows)
+    await fetchMissingProfiles(rows.map((notification) => notification.actor_id || '').filter(Boolean))
   }
 
   async function markAsRead(notificationId: string) {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId)
 
-      if (error) throw error
-
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-      )
-    } catch (err) {
-      console.error('Error marking notification as read:', err)
+    if (error) {
+      console.error('Failed to mark notification as read:', error)
+      return
     }
+
+    setNotifications((prev) => prev.map((notification) => (notification.id === notificationId ? { ...notification, read: true } : notification)))
   }
 
-  async function deleteNotification(notificationId: string) {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-
-      if (error) throw error
-
-      setNotifications((prev) => prev.filter((notification) => notification.id !== notificationId))
-    } catch (err) {
-      console.error('Error deleting notification:', err)
-    }
-  }
-
-  async function acceptFollowRequest(notificationId: string, senderId: string, requestId?: string) {
-    try {
-      let resolvedRequestId = requestId
-
-      if (!resolvedRequestId) {
-        const { data: request } = await supabase
-          .from('follow_requests')
-          .select('id')
-          .eq('sender_id', senderId)
-          .eq('receiver_id', user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        resolvedRequestId = request?.id
-      }
-
-      if (!resolvedRequestId) {
-        throw new Error('Follow request not found')
-      }
-
-      const { error: updateError } = await supabase
-        .from('follow_requests')
-        .update({ status: 'accepted' })
-        .eq('id', resolvedRequestId)
-        .eq('receiver_id', user.id)
-
-      if (updateError) throw updateError
-
-      const { data: existingFollower } = await supabase
-        .from('followers')
-        .select('id')
-        .eq('follower_id', senderId)
-        .eq('following_id', user.id)
-        .maybeSingle()
-
-      if (!existingFollower) {
-        const { error: followerInsertError } = await supabase
-          .from('followers')
-          .insert({
-            follower_id: senderId,
-            following_id: user.id,
-          })
-
-        if (followerInsertError) throw followerInsertError
-      }
-
-      // Mark notification as read
-      await markAsRead(notificationId)
-
-      // Create a notification for the sender that their request was accepted
-      const { data: existingAcceptedNotification } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', senderId)
-        .eq('related_id', resolvedRequestId)
-        .eq('type', 'follow_accepted')
-        .maybeSingle()
-
-      if (!existingAcceptedNotification) {
-        const { error: notificationError } = await createNotification({
-          user_id: senderId,
-          type: 'follow_accepted',
-          related_id: resolvedRequestId,
-          content: `FOLLOW_ACCEPTED:${resolvedRequestId}`,
-          is_read: false,
-        })
-
-        if (notificationError) {
-          console.error('Error creating acceptance notification:', notificationError)
-        }
-      }
-
-      // Remove this notification from the list
-      setNotifications(prev => prev.filter(n => n.id !== notificationId))
-    } catch (err) {
-      console.error('Error accepting follow request:', err)
-    }
-  }
-
-  async function rejectFollowRequest(notificationId: string, senderId: string, requestId?: string) {
-    try {
-      let resolvedRequestId = requestId
-
-      if (!resolvedRequestId) {
-        const { data: request } = await supabase
-          .from('follow_requests')
-          .select('id')
-          .eq('sender_id', senderId)
-          .eq('receiver_id', user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        resolvedRequestId = request?.id
-      }
-
-      if (!resolvedRequestId) {
-        throw new Error('Follow request not found')
-      }
-
-      const { error: rejectError } = await supabase
-        .from('follow_requests')
-        .update({ status: 'rejected' })
-        .eq('id', resolvedRequestId)
-        .eq('receiver_id', user.id)
-
-      if (rejectError) throw rejectError
-
-      // Mark notification as read and remove from list
-      setNotifications(prev => prev.filter(n => n.id !== notificationId))
-    } catch (err) {
-      console.error('Error rejecting follow request:', err)
-    }
-  }
-
-  function parseFollowRequest(notification: Notification) {
-    if (notification.type === 'follow_request' && notification.content.startsWith('FOLLOW_REQUEST:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 4) {
-        const requestId = parts[1]
-        const senderId = parts[2]
-        const senderName = parts.slice(3).join(':')
-        return { requestId, senderId, senderName }
-      }
-
-      if (parts.length >= 3) {
-        const senderId = parts[1]
-        const senderName = parts.slice(2).join(':')
-        return { requestId: notification.related_id, senderId, senderName }
-      }
-
-      return { requestId: notification.related_id, senderId: '', senderName: 'Someone' }
-    }
-    return null
-  }
-
-  function parseTeamInvite(notification: Notification) {
-    if (notification.content?.startsWith('TEAM_INVITE:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 3) {
-        return {
-          teamId: parts[1],
-          teamName: parts.slice(2).join(':'),
-        }
-      }
-    }
-    return null
-  }
-
-  function parseTeamJoinRequest(notification: Notification) {
-    if (notification.content?.startsWith('TEAM_JOIN_REQUEST:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 3) {
-        return {
-          teamId: parts[1],
-          requesterId: parts[2],
-        }
-      }
-    }
-    return null
-  }
-
-  function parseTeamJoinAccepted(notification: Notification) {
-    if (notification.content?.startsWith('TEAM_JOIN_ACCEPTED:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 2) {
-        return { teamId: parts[1] }
-      }
-    }
-    return null
-  }
-
-  function parseMessageNotification(notification: Notification) {
-    if (notification.content?.startsWith('NEW_DM:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 3) {
-        return {
-          senderId: parts[1],
-          preview: parts.slice(2).join(':'),
-        }
-      }
-    }
-
-    if (notification.content?.startsWith('TEAM_MESSAGE:')) {
-      const parts = notification.content.split(':')
-      if (parts.length >= 4) {
-        return {
-          teamId: parts[1],
-          senderId: parts[2],
-          preview: parts.slice(3).join(':'),
-        }
-      }
-    }
-
-    return null
-  }
-
-  async function acceptTeamJoinRequest(notificationId: string, teamId: string, requesterId: string) {
+  async function clearAllNotifications() {
     if (!user?.id) return
 
-    try {
-      const { data: existingMember } = await supabase
-        .from('team_members')
-        .select('id')
-        .eq('team_id', teamId)
-        .eq('user_id', requesterId)
-        .maybeSingle()
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false)
 
-      if (!existingMember) {
-        const { error: insertError } = await supabase
-          .from('team_members')
-          .insert({ team_id: teamId, user_id: requesterId })
-
-        if (insertError) throw insertError
-      }
-
-      await markAsRead(notificationId)
-
-      const { error: notifyError } = await supabase.from('notifications').insert({
-        user_id: requesterId,
-        type: 'team_join_accepted',
-        content: `TEAM_JOIN_ACCEPTED:${teamId}`,
-        related_id: teamId,
-        is_read: false,
-      })
-
-      if (notifyError) {
-        console.error('Error creating team accepted notification:', notifyError)
-      }
-
-      setNotifications((prev) => prev.filter((notification) => notification.id !== notificationId))
-    } catch (err) {
-      console.error('Error accepting team join request:', err)
+    if (error) {
+      console.error('Failed to clear notifications:', error)
+      return
     }
+
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
   }
 
-  function formatNotificationContent(notification: Notification) {
-    const teamInvite = parseTeamInvite(notification)
-    if (teamInvite) {
-      return `You were invited to join ${teamInvite.teamName}`
+  async function acceptFollowRequest(notification: Notification) {
+    if (!user?.id || !notification.actor_id || !notification.entity_id) return
+
+    const { error: updateRequestError } = await supabase
+      .from('follow_requests')
+      .update({ status: 'accepted' })
+      .eq('id', notification.entity_id)
+      .eq('receiver_id', user.id)
+
+    if (updateRequestError) {
+      console.error('Failed to accept follow request:', updateRequestError)
+      return
     }
 
-    const joinRequest = parseTeamJoinRequest(notification)
-    if (joinRequest) {
-      return 'A user requested to join your team'
+    const { data: existingFollower } = await supabase
+      .from('followers')
+      .select('id')
+      .eq('follower_id', notification.actor_id)
+      .eq('following_id', user.id)
+      .maybeSingle()
+
+    if (!existingFollower) {
+      const { error: followerError } = await supabase
+        .from('followers')
+        .insert({
+          follower_id: notification.actor_id,
+          following_id: user.id,
+        })
+
+      if (followerError) {
+        console.error('Failed to create follower row:', followerError)
+        return
+      }
     }
 
-    const joinAccepted = parseTeamJoinAccepted(notification)
-    if (joinAccepted) {
-      return 'Your team join request was accepted'
+    await markAsRead(notification.id)
+
+    const actorProfile = profilesById[notification.actor_id]
+    const actorName = actorProfile?.full_name || actorProfile?.username || 'Someone'
+
+    await createNotification({
+      user_id: notification.actor_id,
+      actor_id: user.id,
+      type: 'follow_accepted',
+      entity_id: notification.entity_id,
+      content: `${actorName} accepted your follow request.`,
+      read: false,
+      dedupe: true,
+    })
+  }
+
+  async function rejectFollowRequest(notification: Notification) {
+    if (!user?.id || !notification.entity_id) return
+
+    const { error } = await supabase
+      .from('follow_requests')
+      .update({ status: 'rejected' })
+      .eq('id', notification.entity_id)
+      .eq('receiver_id', user.id)
+
+    if (error) {
+      console.error('Failed to reject follow request:', error)
+      return
     }
 
-    const parsedMessage = parseMessageNotification(notification)
-    if (parsedMessage?.teamId) {
-      return `New team message: ${parsedMessage.preview}`
-    }
-    if (parsedMessage?.senderId) {
-      return `New direct message: ${parsedMessage.preview}`
+    await markAsRead(notification.id)
+  }
+
+  function renderNotificationText(notification: Notification) {
+    const actor = notification.actor_id ? profilesById[notification.actor_id] : undefined
+    const actorName = actor?.full_name || actor?.username || 'Someone'
+
+    if (notification.type === 'message') {
+      return `${actorName}: ${parseMessagePreview(notification.content)}`
     }
 
-    switch (notification.type) {
-      case 'follow_request':
-        return 'Someone sent you a follow request'
-      case 'follow_accepted':
-        return 'Your follow request was accepted'
-      case 'message':
-        return 'You have a new message'
-      default:
-        return notification.content
+    if (notification.type === 'follow_request') {
+      return `${actorName} sent you a follow request.`
     }
+
+    if (notification.type === 'follow_accepted') {
+      return `${actorName} accepted your follow request.`
+    }
+
+    return notification.content
+  }
+
+  function actorInitials(notification: Notification) {
+    const actor = notification.actor_id ? profilesById[notification.actor_id] : undefined
+    const base = actor?.full_name || actor?.username || 'U'
+    return base
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U'
   }
 
   if (loading) {
@@ -395,8 +272,8 @@ export default function NotificationsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="glass rounded-xl p-8 border border-white/10">
             <div className="animate-pulse">
-              <div className="h-8 bg-white/10 rounded mb-4"></div>
-              <div className="h-4 bg-white/10 rounded w-3/4"></div>
+              <div className="h-8 bg-white/10 rounded mb-4" />
+              <div className="h-4 bg-white/10 rounded w-3/4" />
             </div>
           </div>
         </div>
@@ -411,11 +288,7 @@ export default function NotificationsPage() {
           <div className="glass rounded-xl p-8 border border-white/10 text-center">
             <h1 className="text-2xl font-display font-bold mb-4">Please Log In</h1>
             <p className="text-secondary-text mb-6">You need to be logged in to view notifications.</p>
-            <Button
-              onClick={() => router.push('/login')}
-              size="sm"
-              className="px-6 py-2 rounded-md"
-            >
+            <Button onClick={() => router.push('/login')} size="sm" className="px-6 py-2 rounded-md">
               Go to Login
             </Button>
           </div>
@@ -427,7 +300,18 @@ export default function NotificationsPage() {
   return (
     <section className="py-12 px-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-display font-semibold mb-8">Notifications</h1>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-display font-semibold">Notifications</h1>
+          <Button
+            onClick={clearAllNotifications}
+            size="sm"
+            variant="secondary"
+            disabled={unreadCount === 0}
+            className="px-4 py-2 rounded-md"
+          >
+            Clear All Notifications
+          </Button>
+        </div>
 
         <div className="space-y-4">
           {notifications.length === 0 ? (
@@ -435,132 +319,61 @@ export default function NotificationsPage() {
               <p className="text-secondary-text">No notifications yet</p>
             </div>
           ) : (
-            notifications.map((notification, index) => {
-              const followRequestData = parseFollowRequest(notification)
-              const teamInviteData = parseTeamInvite(notification)
-              const teamJoinRequestData = parseTeamJoinRequest(notification)
-              const teamJoinAcceptedData = parseTeamJoinAccepted(notification)
-              const messageData = parseMessageNotification(notification)
-              
-              return (
-                <motion.div
-                  key={notification.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`glass rounded-xl p-6 border transition-all ${
-                    notification.is_read
-                      ? 'border-white/10 bg-white/5'
-                      : 'border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className={`text-sm ${notification.is_read ? 'text-secondary-text' : 'text-slate-900 dark:text-white'}`}>
-                        {followRequestData ? `${followRequestData.senderName} sent you a follow request` : formatNotificationContent(notification)}
-                      </p>
-                      <p className="text-xs text-secondary-text/70 mt-1">
+            notifications.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04 }}
+                className={`rounded-xl border p-5 transition-colors ${
+                  notification.read
+                    ? 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900/60'
+                    : 'border-indigo-300 bg-indigo-50 dark:border-indigo-400/40 dark:bg-indigo-500/10'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                      {actorInitials(notification)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-800 dark:text-slate-100">{renderNotificationText(notification)}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {new Date(notification.created_at).toLocaleString()}
                       </p>
                     </div>
-                    
+                  </div>
 
-                    {teamJoinRequestData && !notification.is_read && (
-                      <div className="flex gap-2 ml-4">
+                  <div className="flex items-center gap-2">
+                    {notification.type === 'follow_request' && !notification.read && (
+                      <>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            acceptTeamJoinRequest(notification.id, teamJoinRequestData.teamId, teamJoinRequestData.requesterId)
-                          }}
-                          className="px-4 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all text-sm"
+                          onClick={() => acceptFollowRequest(notification)}
+                          className="rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteNotification(notification.id)
-                          }}
-                          className="px-4 py-2 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-sm"
+                          onClick={() => rejectFollowRequest(notification)}
+                          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           Reject
                         </button>
-                      </div>
+                      </>
                     )}
 
-                    {followRequestData && !notification.is_read && (
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            acceptFollowRequest(notification.id, followRequestData.senderId, followRequestData.requestId)
-                          }}
-                          className="px-4 py-2 rounded-md bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all text-sm"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            rejectFollowRequest(notification.id, followRequestData.senderId, followRequestData.requestId)
-                          }}
-                          className="px-4 py-2 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-sm"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 ml-4">
-                      {!notification.is_read && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            markAsRead(notification.id)
-
-                            if (teamInviteData?.teamId) {
-                              router.push(`/hackhub/${teamInviteData.teamId}`)
-                              return
-                            }
-
-                            if (teamJoinAcceptedData?.teamId) {
-                              router.push(`/hackhub/${teamJoinAcceptedData.teamId}`)
-                              return
-                            }
-
-                            if (messageData?.teamId) {
-                              router.push(`/hackhub/${messageData.teamId}`)
-                              return
-                            }
-
-                            if (messageData?.senderId) {
-                              router.push(`/chat?user=${encodeURIComponent(messageData.senderId)}`)
-                            }
-                          }}
-                          className="px-3 py-1.5 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-xs"
-                        >
-                          Mark read
-                        </button>
-                      )}
-
+                    {!notification.read && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteNotification(notification.id)
-                        }}
-                        className="px-3 py-1.5 rounded-md glass border border-white/10 text-secondary-text hover:border-white/20 transition-all text-xs"
+                        onClick={() => markAsRead(notification.id)}
+                        className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
-                        Delete
+                        Mark read
                       </button>
-                    </div>
-
-                    {!followRequestData && !teamJoinRequestData && !notification.is_read && (
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full ml-4"></div>
                     )}
                   </div>
-                </motion.div>
-              )
-            })
+                </div>
+              </motion.div>
+            ))
           )}
         </div>
       </div>

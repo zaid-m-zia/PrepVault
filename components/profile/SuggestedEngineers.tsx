@@ -17,6 +17,8 @@ export default function SuggestedEngineers() {
   const [users, setUsers] = useState<SuggestedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any | null>(null)
+  const [followStatusMap, setFollowStatusMap] = useState<Record<string, string | undefined>>({})
+  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchSuggestedUsers()
@@ -40,7 +42,40 @@ export default function SuggestedEngineers() {
         .limit(6)
 
       if (suggested) {
-        setUsers(suggested)
+        const typedSuggested = suggested as SuggestedUser[]
+        setUsers(typedSuggested)
+
+        const suggestedIds = typedSuggested.map((profile: SuggestedUser) => profile.id)
+
+        if (suggestedIds.length > 0) {
+          const [{ data: followerRows }, { data: requestRows }] = await Promise.all([
+            supabase
+              .from('followers')
+              .select('following_id')
+              .eq('follower_id', user.user.id)
+              .in('following_id', suggestedIds),
+            supabase
+              .from('follow_requests')
+              .select('receiver_id, status, created_at')
+              .eq('sender_id', user.user.id)
+              .in('receiver_id', suggestedIds)
+              .order('created_at', { ascending: false }),
+          ])
+
+          const followingState: Record<string, boolean> = {}
+          for (const row of (followerRows || []) as Array<{ following_id: string }>) {
+            followingState[row.following_id] = true
+          }
+
+          const requestState: Record<string, string | undefined> = {}
+          for (const row of (requestRows || []) as Array<{ receiver_id: string; status: string | null }>) {
+            if (requestState[row.receiver_id]) continue
+            requestState[row.receiver_id] = row.status || 'pending'
+          }
+
+          setFollowingMap(followingState)
+          setFollowStatusMap(requestState)
+        }
       }
     } catch (e) {
       console.error('Error fetching suggested users:', e)
@@ -95,7 +130,17 @@ export default function SuggestedEngineers() {
               )}
 
               <div className="mt-4">
-                <FollowButton profileId={user.id} currentStatus={undefined} isFollowed={false} />
+                <FollowButton
+                  profileId={user.id}
+                  currentStatus={followStatusMap[user.id]}
+                  isFollowed={Boolean(followingMap[user.id])}
+                  onStatusChange={(nextStatus) => {
+                    setFollowStatusMap((prev) => ({ ...prev, [user.id]: nextStatus }))
+                    if (nextStatus === 'accepted') {
+                      setFollowingMap((prev) => ({ ...prev, [user.id]: true }))
+                    }
+                  }}
+                />
               </div>
             </motion.div>
           ))}

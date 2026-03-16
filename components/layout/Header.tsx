@@ -53,7 +53,7 @@ export default function Header(): JSX.Element {
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq('read', false);
 
       if (error) {
         console.error('Failed to fetch unread notifications count:', error);

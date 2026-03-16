@@ -2,6 +2,11 @@
 
 Run these SQL statements in your Supabase SQL editor to set up the networking system tables.
 
+## Latest patch migration
+
+- Notifications dedupe + schema alignment:
+  - [docs/migrations/2026-03-16_notifications_dedupe.sql](docs/migrations/2026-03-16_notifications_dedupe.sql)
+
 ## Phase 1: Follow System
 
 ```sql

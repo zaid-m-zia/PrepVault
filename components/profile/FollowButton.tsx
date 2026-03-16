@@ -88,7 +88,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
         .from('notifications')
         .select('id')
         .eq('user_id', profileId)
-        .eq('related_id', createdRequest.id)
+        .eq('entity_id', createdRequest.id)
         .eq('type', 'follow_request')
         .maybeSingle()
 
@@ -96,10 +96,11 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
         const userName = session.user.user_metadata?.full_name || session.user.email || 'Someone'
         const { error: notificationError } = await createNotification({
           user_id: profileId,
+          actor_id: session.user.id,
           type: 'follow_request',
-          related_id: createdRequest.id,
+          entity_id: createdRequest.id,
           content: `FOLLOW_REQUEST:${createdRequest.id}:${session.user.id}:${userName}`,
-          is_read: false,
+          read: false,
         })
 
         if (notificationError) {
@@ -114,6 +115,11 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
   }
 
   const isAlreadyFollowing = isFollowed || status === 'pending' || currentStatus === 'pending' || currentStatus === 'accepted'
+  const effectiveStatus = isFollowed || status === 'accepted' || currentStatus === 'accepted'
+    ? 'following'
+    : status === 'pending' || currentStatus === 'pending'
+      ? 'requested'
+      : 'follow'
 
   return (
     <Button
@@ -123,7 +129,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
       variant={isAlreadyFollowing ? 'secondary' : 'primary'}
       className="px-6"
     >
-      {loading ? 'Loading...' : isAlreadyFollowing ? (isFollowed ? 'Following' : 'Requested') : 'Follow'}
+      {loading ? 'Loading...' : effectiveStatus === 'following' ? 'Following' : effectiveStatus === 'requested' ? 'Requested' : 'Follow'}
     </Button>
   )
 }

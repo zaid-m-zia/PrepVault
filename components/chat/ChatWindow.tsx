@@ -415,7 +415,7 @@ export default function ChatWindow({
         return
       }
 
-      const { error } = await supabase
+      const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
           sender_id: currentUserId,
@@ -425,13 +425,18 @@ export default function ChatWindow({
           delivered: false,
           seen: false,
         })
+        .select('id')
+        .single()
 
       if (error) throw error
 
       const { error: notificationError } = await createNotification({
         user_id: selectedUserId,
+        actor_id: currentUserId,
         type: 'message',
+        entity_id: insertedMessage?.id,
         content: `NEW_DM:${currentUserId}:${text.slice(0, 120)}`,
+        read: false,
       })
 
       if (notificationError) {
