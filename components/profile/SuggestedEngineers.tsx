@@ -24,6 +24,79 @@ export default function SuggestedEngineers() {
     fetchSuggestedUsers()
   }, [])
 
+  useEffect(() => {
+    if (!currentUser?.id || users.length === 0) return
+
+    const channel = supabase
+      .channel(`suggested-follow-sync-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_requests',
+          filter: `sender_id=eq.${currentUser.id}`,
+        },
+        () => {
+          void refreshFollowState(currentUser.id, users)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'followers',
+          filter: `follower_id=eq.${currentUser.id}`,
+        },
+        () => {
+          void refreshFollowState(currentUser.id, users)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUser?.id, users])
+
+  async function refreshFollowState(currentUserId: string, suggestedUsers: SuggestedUser[]) {
+    const suggestedIds = suggestedUsers.map((profile) => profile.id)
+    if (suggestedIds.length === 0) {
+      setFollowingMap({})
+      setFollowStatusMap({})
+      return
+    }
+
+    const [{ data: followerRows }, { data: requestRows }] = await Promise.all([
+      supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', currentUserId)
+        .in('following_id', suggestedIds),
+      supabase
+        .from('follow_requests')
+        .select('receiver_id, status, created_at')
+        .eq('sender_id', currentUserId)
+        .in('receiver_id', suggestedIds)
+        .order('created_at', { ascending: false }),
+    ])
+
+    const followingState: Record<string, boolean> = {}
+    for (const row of (followerRows || []) as Array<{ following_id: string }>) {
+      followingState[row.following_id] = true
+    }
+
+    const requestState: Record<string, string | undefined> = {}
+    for (const row of (requestRows || []) as Array<{ receiver_id: string; status: string | null }>) {
+      if (requestState[row.receiver_id]) continue
+      requestState[row.receiver_id] = row.status || 'pending'
+    }
+
+    setFollowingMap(followingState)
+    setFollowStatusMap(requestState)
+  }
+
   async function fetchSuggestedUsers() {
     try {
       const { data: user } = await supabase.auth.getUser()
@@ -48,33 +121,7 @@ export default function SuggestedEngineers() {
         const suggestedIds = typedSuggested.map((profile: SuggestedUser) => profile.id)
 
         if (suggestedIds.length > 0) {
-          const [{ data: followerRows }, { data: requestRows }] = await Promise.all([
-            supabase
-              .from('followers')
-              .select('following_id')
-              .eq('follower_id', user.user.id)
-              .in('following_id', suggestedIds),
-            supabase
-              .from('follow_requests')
-              .select('receiver_id, status, created_at')
-              .eq('sender_id', user.user.id)
-              .in('receiver_id', suggestedIds)
-              .order('created_at', { ascending: false }),
-          ])
-
-          const followingState: Record<string, boolean> = {}
-          for (const row of (followerRows || []) as Array<{ following_id: string }>) {
-            followingState[row.following_id] = true
-          }
-
-          const requestState: Record<string, string | undefined> = {}
-          for (const row of (requestRows || []) as Array<{ receiver_id: string; status: string | null }>) {
-            if (requestState[row.receiver_id]) continue
-            requestState[row.receiver_id] = row.status || 'pending'
-          }
-
-          setFollowingMap(followingState)
-          setFollowStatusMap(requestState)
+          await refreshFollowState(user.user.id, typedSuggested)
         }
       }
     } catch (e) {

@@ -42,7 +42,6 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     let mounted = true
-    let currentUserId: string | null = null
 
     async function initialize() {
       try {
@@ -56,7 +55,6 @@ export default function NotificationsPage() {
         }
 
         setUser(session.user)
-        currentUserId = session.user.id
         await fetchNotifications(session.user.id)
       } catch (error) {
         console.error('Failed to initialize notifications page:', error)
@@ -67,18 +65,26 @@ export default function NotificationsPage() {
 
     initialize()
 
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user?.id) return
+
     const channel = supabase
-      .channel('notifications-insert-live')
+      .channel(`notifications-insert-live-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
         },
         (payload: { new: Notification }) => {
           const incoming = payload.new
-          if (!currentUserId || incoming.user_id !== currentUserId) return
 
           setNotifications((prev) => {
             if (prev.some((notification) => notification.id === incoming.id)) return prev
@@ -93,10 +99,9 @@ export default function NotificationsPage() {
       .subscribe()
 
     return () => {
-      mounted = false
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [user?.id])
 
   async function fetchMissingProfiles(profileIds: string[]) {
     const uniqueIds = Array.from(new Set(profileIds.filter(Boolean))).filter((id) => !profilesById[id])

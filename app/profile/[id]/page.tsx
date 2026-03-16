@@ -221,16 +221,24 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
       if (error) throw error
 
-      const newProject: ProfileProject = {
-        id: data.id,
-        title: data.title || 'Untitled Project',
-        description: data.description || '',
-        tech_stack: Array.isArray(data.tech_stack) ? data.tech_stack : [],
-        github_link: data.github_link || '',
-        demo_link: data.demo_link || '',
-      }
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-      setProjects((prev) => [newProject, ...prev])
+      if (projectsError) throw projectsError
+
+      const normalizedProjects: ProfileProject[] = (projectsData ?? []).map((project: any) => ({
+        id: project.id,
+        title: project.title || 'Untitled Project',
+        description: project.description || '',
+        tech_stack: Array.isArray(project.tech_stack) ? project.tech_stack : [],
+        github_link: project.github_link || '',
+        demo_link: project.demo_link || '',
+      }))
+
+      setProjects(normalizedProjects)
       setProjectToast({ type: 'success', message: 'Project added successfully.' })
     } catch (error) {
       console.error('Failed to add project:', error)

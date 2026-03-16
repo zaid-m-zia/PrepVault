@@ -101,6 +101,7 @@ export default function FollowButton({ profileId, currentStatus, isFollowed, onS
           entity_id: createdRequest.id,
           content: `FOLLOW_REQUEST:${createdRequest.id}:${session.user.id}:${userName}`,
           read: false,
+          dedupe: true,
         })
 
         if (notificationError) {

@@ -437,6 +437,7 @@ export default function ChatWindow({
         entity_id: insertedMessage?.id,
         content: `NEW_DM:${currentUserId}:${text.slice(0, 120)}`,
         read: false,
+        dedupe: true,
       })
 
       if (notificationError) {

@@ -50,8 +50,8 @@ export default function EditProjectModal({ open, project, loading = false, onClo
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl glass rounded-xl p-6 border border-white/10">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-y-auto p-4">
+      <div className="w-full max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto glass rounded-xl p-6 border border-white/10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Edit Project</h3>
           <button onClick={onClose} className="text-secondary-text hover:text-white">✕</button>
