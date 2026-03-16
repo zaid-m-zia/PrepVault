@@ -27,10 +27,12 @@ type ProfileLite = {
 }
 
 function parseMessagePreview(content: string) {
-  if (!content.startsWith('NEW_DM:')) return content
-  const parts = content.split(':')
-  if (parts.length < 3) return content
-  return parts.slice(2).join(':')
+  // Backward compat: strip old NEW_DM:userId: prefix if present
+  if (content.startsWith('NEW_DM:')) {
+    const parts = content.split(':')
+    return parts.slice(2).join(':').slice(0, 50)
+  }
+  return content
 }
 
 export default function NotificationsPage() {
@@ -270,7 +272,7 @@ export default function NotificationsPage() {
 
     if (notification.type === 'message') {
       const preview = parseMessagePreview(notification.content)
-      return `New direct message from ${actorName}: ${preview}`
+      return `New direct message ${actorName}: ${preview}`
     }
 
     if (notification.type === 'follow_request') {

@@ -20,6 +20,8 @@ export default function Header(): JSX.Element {
 
   const [user, setUser] = useState<any | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -79,11 +81,48 @@ export default function Header(): JSX.Element {
           await fetchUnreadCount();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload: any) => {
+          const actorId = payload.new?.actor_id;
+          let senderName = 'Someone';
+
+          if (actorId) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, username')
+              .eq('id', actorId)
+              .single();
+            senderName = profile?.full_name || profile?.username || 'Someone';
+          }
+
+          const type = payload.new?.type;
+          let message = `New notification from ${senderName}`;
+          if (type === 'message') {
+            message = `New message from ${senderName}`;
+          } else if (type === 'follow_request') {
+            message = `${senderName} sent you a follow request`;
+          } else if (type === 'follow_accepted') {
+            message = `${senderName} accepted your follow request`;
+          }
+
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          setToast(message);
+          toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+        }
+      )
       .subscribe();
 
     return () => {
       mounted = false;
       supabase.removeChannel(channel);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [user?.id]);
 
@@ -128,6 +167,15 @@ export default function Header(): JSX.Element {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:bg-slate-950/80 dark:border-slate-800">
+            {toast && (
+              <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 rounded-xl border border-indigo-400/30 bg-slate-900/95 px-4 py-3 shadow-2xl backdrop-blur-sm text-sm text-white max-w-sm animate-fade-in">
+                <Bell className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                <span>{toast}</span>
+                <button onClick={() => setToast(null)} className="ml-auto text-slate-400 hover:text-white transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
       <div className="max-w-[88rem] mx-auto pl-6 pr-3 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">
