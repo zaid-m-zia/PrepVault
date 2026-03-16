@@ -2,11 +2,13 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Avatar from '../ui/Avatar'
 
 type Conversation = {
   userId: string
   username: string
   full_name?: string
+  avatar_url?: string | null
   lastMessage?: string
   lastMessageTime?: string
   unreadCount?: number
@@ -52,13 +54,15 @@ export default function ConversationList({
                 }`}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-bold text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:shadow-none">
-                    {(conv.full_name || conv.username)
-                      .split(' ')
-                      .map((n: string) => n[0])
-                      .join('')
-                      .toUpperCase()}
-                  </div>
+                  <Avatar
+                    user={{
+                      full_name: conv.full_name,
+                      username: conv.username,
+                      avatar_url: conv.avatar_url,
+                    }}
+                    size="medium"
+                    className="flex-shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <Link

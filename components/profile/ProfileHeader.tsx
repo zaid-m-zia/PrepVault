@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import Avatar from '../ui/Avatar'
 
 type ProfileHeaderProps = {
   profile: any
@@ -21,33 +22,18 @@ export default function ProfileHeader({
   teamsCreated,
   actions,
 }: ProfileHeaderProps) {
-  const [imageError, setImageError] = useState(false)
-
-  useEffect(() => {
-    setImageError(false)
-  }, [profile?.avatar_url])
-
-  const initials = (profile?.full_name || profile?.username || 'U')
-    .split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-
   return (
     <div className="glass rounded-xl p-8 border border-white/10 mb-8">
       <div className="flex items-start gap-6">
-        <div className="w-24 h-24 rounded-lg glass border border-white/10 flex items-center justify-center text-2xl font-bold flex-shrink-0 overflow-hidden">
-          {profile?.avatar_url && !imageError ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile?.full_name || profile?.username || 'User'}
-              className="w-full h-full object-cover"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            initials
-          )}
-        </div>
+        <Avatar
+          user={{
+            full_name: profile?.full_name,
+            username: profile?.username,
+            avatar_url: profile?.avatar_url,
+          }}
+          size="large"
+          className="flex-shrink-0"
+        />
 
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-display font-bold">{profile?.full_name || profile?.username}</h1>

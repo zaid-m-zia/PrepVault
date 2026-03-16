@@ -11,6 +11,7 @@ type Conversation = {
   userId: string
   username: string
   full_name?: string
+  avatar_url?: string | null
   lastMessage?: string
   lastMessageTime?: string
   unreadCount?: number
@@ -131,7 +132,7 @@ function ChatContent() {
       if (partnerIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, username, full_name')
+          .select('id, username, full_name, avatar_url')
           .in('id', partnerIds)
 
         profiles?.forEach((profile: any) => {
@@ -139,6 +140,7 @@ function ChatContent() {
           if (conv) {
             conv.username = profile.username
             conv.full_name = profile.full_name
+            conv.avatar_url = profile.avatar_url
             conv.unreadCount = unreadBySender.get(profile.id) || 0
           }
         })

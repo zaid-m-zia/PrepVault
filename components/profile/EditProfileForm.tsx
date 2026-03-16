@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import { motion } from 'framer-motion'
 import Button from '../ui/Button'
+import Avatar from '../ui/Avatar'
 
 type EditProfileFormProps = {
   profile: any
@@ -25,7 +26,6 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
     bio: profile?.bio || '',
     college: profile?.college || '',
     branch: profile?.branch || '',
-    avatar_url: profile?.avatar_url || '',
     github: profile?.github || '',
     linkedin: profile?.linkedin || '',
     leetcode: profile?.leetcode || '',
@@ -33,7 +33,14 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
   })
   const [skillInput, setSkillInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(profile?.avatar_url || null)
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    setAvatarPreviewUrl(profile?.avatar_url || null)
+  }, [profile?.avatar_url])
 
   function field(key: keyof typeof formData) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -63,6 +70,27 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
       const session = sessionData?.session
       if (!session) throw new Error('Not authenticated')
 
+      let avatarUrl = profile?.avatar_url || null
+
+      if (selectedAvatarFile) {
+        setAvatarUploading(true)
+
+        const extension = selectedAvatarFile.name.split('.').pop()?.toLowerCase() || 'png'
+        const filePath = `${session.user.id}-avatar.${extension}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(filePath, selectedAvatarFile, { upsert: true, contentType: selectedAvatarFile.type })
+
+        if (uploadError) throw uploadError
+
+        const { data: publicUrlData } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath)
+
+        avatarUrl = publicUrlData?.publicUrl ? `${publicUrlData.publicUrl}?t=${Date.now()}` : null
+      }
+
       const { data: updatedData, error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -71,7 +99,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
           bio: formData.bio,
           college: formData.college,
           branch: formData.branch,
-          avatar_url: formData.avatar_url,
+          avatar_url: avatarUrl,
           github: formData.github,
           linkedin: formData.linkedin,
           leetcode: formData.leetcode,
@@ -87,8 +115,37 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
     } catch (err: any) {
       setError(err.message || 'Failed to update profile')
     } finally {
+      setAvatarUploading(false)
       setLoading(false)
     }
+  }
+
+  function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid image format. Please upload PNG, JPG, JPEG, or WEBP.')
+      return
+    }
+
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      setError('Image size must be 5MB or less.')
+      return
+    }
+
+    setError(null)
+    setSelectedAvatarFile(file)
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAvatarPreviewUrl(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -142,10 +199,28 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
           />
         </div>
 
-        {/* Avatar URL */}
+        {/* Avatar Upload */}
         <div>
-          <label className="block text-sm font-medium mb-2">Avatar URL</label>
-          <input type="url" value={formData.avatar_url} onChange={field('avatar_url')} className={inputCls} placeholder="https://example.com/avatar.jpg" />
+          <label className="block text-sm font-medium mb-2">Profile Avatar</label>
+          <div className="flex items-center gap-4">
+            <Avatar
+              user={{
+                full_name: formData.full_name,
+                username: formData.username,
+                avatar_url: avatarPreviewUrl,
+              }}
+              size="large"
+            />
+            <div className="flex-1">
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                onChange={handleAvatarFileChange}
+                className={inputCls}
+              />
+              <p className="mt-2 text-xs text-secondary-text">PNG, JPG, JPEG, WEBP • Max 5MB</p>
+            </div>
+          </div>
         </div>
 
         {/* Links */}
@@ -203,7 +278,7 @@ export default function EditProfileForm({ profile, onSave, onCancel }: EditProfi
         {/* Actions */}
         <div className="flex gap-4">
           <Button type="submit" disabled={loading} className="px-6 py-3 rounded-lg">
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading || avatarUploading ? 'Saving...' : 'Save Changes'}
           </Button>
           <motion.button
             type="button"

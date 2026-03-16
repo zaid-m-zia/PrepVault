@@ -1,8 +1,11 @@
 import Button from '../ui/Button';
+import Avatar from '../ui/Avatar';
 
 export type HackHubUser = {
   id: string;
   name: string;
+  username?: string;
+  avatar_url?: string | null;
   college: string;
   branch: string;
   bio: string;
@@ -24,6 +27,16 @@ export default function UserCard({
     <article className="glass rounded-xl p-5 border border-white/10 hover:border-white/20 hover:shadow-lg transition-transform transform hover:-translate-y-0.5">
       <div className="flex flex-col h-full justify-between">
         <div>
+          <div className="mb-3">
+            <Avatar
+              user={{
+                full_name: user.name,
+                username: user.username,
+                avatar_url: user.avatar_url,
+              }}
+              size="medium"
+            />
+          </div>
           <h3 className="text-lg font-display font-semibold">{user.name}</h3>
           {(user.college || user.branch) && (
             <p className="mt-1 text-xs text-secondary-text">

@@ -4,12 +4,14 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import Link from 'next/link'
+import Avatar from '../ui/Avatar'
 
 type SearchResult = {
   id: string
   username: string
   full_name?: string
   bio?: string
+  avatar_url?: string | null
   type?: string
   title?: string
 }
@@ -49,6 +51,7 @@ export default function SearchResults() {
               username: p.username,
               full_name: p.full_name,
               bio: p.bio,
+              avatar_url: p.avatar_url,
               type: 'people',
             })) || []
           )
@@ -113,13 +116,15 @@ export default function SearchResults() {
           className="glass rounded-lg p-6 border border-white/10 hover:border-white/20 transition-colors"
         >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg glass border border-white/10 flex items-center justify-center text-lg font-bold flex-shrink-0">
-              {(result.full_name || result.username)
-                ?.split(' ')
-                .map((n) => n[0])
-                .join('')
-                .toUpperCase()}
-            </div>
+            <Avatar
+              user={{
+                full_name: result.full_name,
+                username: result.username,
+                avatar_url: result.avatar_url,
+              }}
+              size="medium"
+              className="flex-shrink-0"
+            />
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold line-clamp-1">{result.full_name || result.username}</h3>
               <p className="text-sm text-secondary-text line-clamp-1">@{result.username}</p>

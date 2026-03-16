@@ -119,7 +119,7 @@ export default function HackHubPage() {
     try {
       let query = supabase
         .from('profiles')
-        .select('id, full_name, username, bio, college, branch, skills, looking_for, github, linkedin, leetcode')
+        .select('id, full_name, username, avatar_url, bio, college, branch, skills, looking_for, github, linkedin, leetcode')
         .not('skills', 'is', null)
         .order('created_at', { ascending: false });
 
@@ -145,6 +145,8 @@ export default function HackHubPage() {
           return {
             id: profile.id,
             name: profile.full_name || profile.username || 'Unnamed User',
+            username: profile.username || '',
+            avatar_url: profile.avatar_url || null,
             college: profile.college || '',
             branch: profile.branch || '',
             bio: profile.bio || 'No bio added yet.',

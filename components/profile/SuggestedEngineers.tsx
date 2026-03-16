@@ -5,12 +5,14 @@ import supabase from '../../lib/supabaseClient'
 import Link from 'next/link'
 import FollowButton from './FollowButton'
 import { motion } from 'framer-motion'
+import Avatar from '../ui/Avatar'
 
 type SuggestedUser = {
   id: string
   username: string
   full_name?: string
   bio?: string
+  avatar_url?: string | null
 }
 
 export default function SuggestedEngineers() {
@@ -110,7 +112,7 @@ export default function SuggestedEngineers() {
       // Get profiles that the current user is not following
       const { data: suggested } = await supabase
         .from('profiles')
-        .select('id, username, full_name, bio')
+        .select('id, username, full_name, bio, avatar_url')
         .neq('id', user.user.id)
         .limit(6)
 
@@ -158,13 +160,14 @@ export default function SuggestedEngineers() {
               className="glass rounded-lg p-6 border border-white/10 hover:border-white/20 transition-all hover:shadow-lg"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-lg glass border border-white/10 flex items-center justify-center text-lg font-bold">
-                  {(user.full_name || user.username)
-                    .split(' ')
-                    .map((n: string) => n[0])
-                    .join('')
-                    .toUpperCase()}
-                </div>
+                <Avatar
+                  user={{
+                    full_name: user.full_name,
+                    username: user.username,
+                    avatar_url: user.avatar_url,
+                  }}
+                  size="medium"
+                />
               </div>
 
               <Link href={`/profile/${user.id}`} className="block hover:text-primary-text">
