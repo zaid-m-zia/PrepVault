@@ -16,6 +16,7 @@ import ProfileAchievements, { type ProfileAchievement } from '../../../component
 import ProfileLinks from '../../../components/profile/ProfileLinks'
 import Button from '../../../components/ui/Button'
 import FollowListModal from '../../../components/profile/FollowListModal'
+import { recommendSkills } from '@/lib/recommendSkills'
 
 export default function UserProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<any>(null)
@@ -54,7 +55,20 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       try {
         const { data } = await supabase.auth.getSession()
         const session = data?.session
-        setUser(session?.user || null)
+        if (session?.user) {
+          const { data: viewerProfile } = await supabase
+            .from('profiles')
+            .select('skills')
+            .eq('id', session.user.id)
+            .maybeSingle()
+
+          setUser({
+            ...session.user,
+            skills: Array.isArray(viewerProfile?.skills) ? viewerProfile.skills : [],
+          })
+        } else {
+          setUser(null)
+        }
 
         const profileData = await refetchProfile(params.id)
         if (!profileData) {
@@ -229,6 +243,8 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   }
 
   const isOwnProfile = user?.id === profile.id
+  const userSkills = user?.skills?.map((s: string) => s.toLowerCase()) || []
+  const suggestedSkills = recommendSkills(userSkills)
 
   const handleProfileUpdate = async () => {
     await refetchProfile(params.id)
@@ -444,6 +460,20 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
               ? profile.skills.filter((s: unknown) => typeof s === 'string' && (s as string).trim())
               : []}
           />
+          <div className="glass rounded-xl p-6 border border-white/10">
+            <h2 className="text-sm font-semibold text-secondary-text mb-3">Suggested Skills</h2>
+            {suggestedSkills.length === 0 ? (
+              <p className="text-sm text-secondary-text">No suggestions yet</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {suggestedSkills.map((skill) => (
+                  <span key={skill} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <ProfileProjects
             projects={projects}
             isOwnProfile={isOwnProfile}
