@@ -8,7 +8,7 @@ import MessageButton from '../../../components/profile/MessageButton'
 import EditProfileForm from '../../../components/profile/EditProfileForm'
 import SuggestedEngineers from '../../../components/profile/SuggestedEngineers'
 import ProfileHeader from '../../../components/profile/ProfileHeader'
-import ProfileSkills from '../../../components/profile/ProfileSkills'
+import SmartSkillInsights from '../../../components/profile/SmartSkillInsights'
 import ProfileProjects from '../../../components/profile/ProfileProjects'
 import type { ProfileProject } from '../../../components/profile/projectTypes'
 import ProfileActivity from '../../../components/profile/ProfileActivity'
@@ -455,25 +455,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         />
 
         <div className="space-y-4 mb-8">
-          <ProfileSkills
-            skills={Array.isArray(profile?.skills)
-              ? profile.skills.filter((s: unknown) => typeof s === 'string' && (s as string).trim())
+          <SmartSkillInsights
+            userSkills={Array.isArray(profile?.skills)
+              ? profile.skills.filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
               : []}
+            suggestedSkills={suggestedSkills}
           />
-          <div className="glass rounded-xl p-6 border border-white/10">
-            <h2 className="text-sm font-semibold text-secondary-text mb-3">Suggested Skills</h2>
-            {suggestedSkills.length === 0 ? (
-              <p className="text-sm text-secondary-text">No suggestions yet</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {suggestedSkills.map((skill) => (
-                  <span key={skill} className="rounded-full px-3 py-1 text-xs bg-white/3 text-secondary-text">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
           <ProfileProjects
             projects={projects}
             isOwnProfile={isOwnProfile}
