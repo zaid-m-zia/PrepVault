@@ -156,7 +156,7 @@ export default function Header(): JSX.Element {
   }
 
   const navItems = [
-    { href: '/', label: 'Home' },
+    { href: '/dashboard', label: 'Dashboard' },
     { href: '/resources', label: 'Resources' },
     { href: '/events', label: 'Events' },
     { href: '/hackhub', label: 'HackHub' },
@@ -166,7 +166,7 @@ export default function Header(): JSX.Element {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:bg-slate-950/80 dark:border-slate-800">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white text-gray-800 dark:bg-gray-900 dark:text-white dark:border-gray-700">
             {toast && (
               <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 rounded-xl border border-indigo-400/30 bg-slate-900/95 px-4 py-3 shadow-2xl backdrop-blur-sm text-sm text-white max-w-sm animate-fade-in">
                 <Bell className="h-4 w-4 text-indigo-400 flex-shrink-0" />
@@ -206,8 +206,8 @@ export default function Header(): JSX.Element {
                     aria-current={active ? 'page' : undefined}
                     className={`px-3 py-2 rounded-lg transition-colors ${
                       active
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-secondary-text hover:text-primary-text hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
+                        ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-500/10'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-gray-800'
                     }`}
                   >
                     <span className="inline-flex items-center gap-2">
@@ -281,8 +281,8 @@ export default function Header(): JSX.Element {
                         aria-current={active ? 'page' : undefined}
                         className={`block px-3 py-2 rounded-lg transition-colors ${
                           active
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-secondary-text hover:text-primary-text hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
+                            ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-500/10'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-gray-800'
                         }`}
                       >
                         <span className="inline-flex items-center gap-2">

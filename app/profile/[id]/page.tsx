@@ -9,6 +9,7 @@ import EditProfileForm from '../../../components/profile/EditProfileForm'
 import SuggestedEngineers from '../../../components/profile/SuggestedEngineers'
 import ProfileHeader from '../../../components/profile/ProfileHeader'
 import SmartSkillInsights from '../../../components/profile/SmartSkillInsights'
+import ProfileSkills from '../../../components/profile/ProfileSkills'
 import ProfileProjects from '../../../components/profile/ProfileProjects'
 import type { ProfileProject } from '../../../components/profile/projectTypes'
 import ProfileActivity from '../../../components/profile/ProfileActivity'
@@ -244,7 +245,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
   const isOwnProfile = user?.id === profile.id
   const userSkills = user?.skills?.map((s: string) => s.toLowerCase()) || []
-  const suggestedSkills = recommendSkills(userSkills)
+  const suggestedSkills = isOwnProfile ? recommendSkills(userSkills) : []
+  const profileSkills = Array.isArray(profile?.skills)
+    ? profile.skills.filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
+    : []
 
   const handleProfileUpdate = async () => {
     await refetchProfile(params.id)
@@ -455,12 +459,14 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         />
 
         <div className="space-y-4 mb-8">
-          <SmartSkillInsights
-            userSkills={Array.isArray(profile?.skills)
-              ? profile.skills.filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
-              : []}
-            suggestedSkills={suggestedSkills}
-          />
+          {isOwnProfile ? (
+            <SmartSkillInsights
+              userSkills={profileSkills}
+              suggestedSkills={suggestedSkills}
+            />
+          ) : (
+            <ProfileSkills skills={profileSkills} />
+          )}
           <ProfileProjects
             projects={projects}
             isOwnProfile={isOwnProfile}
