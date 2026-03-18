@@ -4,10 +4,11 @@ import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Play } from 'lucide-react'
+import { CheckCircle2, Play } from 'lucide-react'
 import ResourceViewer from '../../components/ResourceViewer'
 import StudyPath from '../../components/resources/StudyPath'
 import { buttonClasses } from '../../components/ui/Button'
+import { useUserModuleProgress } from '../../lib/hooks/useUserModuleProgress'
 
 interface Branch {
   id: string
@@ -122,12 +123,33 @@ function ResourcesPageContent() {
   const [activeTab, setActiveTab] = useState<string>('Notes')
   const [viewerOpen, setViewerOpen] = useState(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [smartSearchMessage, setSmartSearchMessage] = useState<string | null>(null)
   const [studyPathTitle, setStudyPathTitle] = useState('')
   const [studyPathSteps, setStudyPathSteps] = useState<StudyPathStep[]>([])
   const [studyPathResources, setStudyPathResources] = useState<Record<string, Resource>>({})
   const [loadingStudyPath, setLoadingStudyPath] = useState(false)
   const [showRoadmap, setShowRoadmap] = useState(false)
+
+  const selectedSubjectName = subjects.find((subject) => subject.id === selectedSubject)?.name || 'Unknown Subject'
+
+  const {
+    progressByModule,
+    togglingIds,
+    toggleModuleCompletion,
+  } = useUserModuleProgress({
+    userId: currentUserId,
+    moduleIds: modules.map((module) => module.id),
+  })
+
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      const { data } = await supabase.auth.getSession()
+      setCurrentUserId(data?.session?.user?.id ?? null)
+    }
+
+    fetchCurrentUser()
+  }, [])
 
   // Load branches on mount
   useEffect(() => {
@@ -664,6 +686,53 @@ function ResourcesPageContent() {
             </div>
           </div>
         </motion.div>
+
+        {selectedSubject && modules.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="glass rounded-xl border border-white/10 p-5">
+              <h3 className="text-base font-semibold mb-1">Module Progress</h3>
+              <p className="text-sm text-secondary-text mb-4">Track each module individually with persistent progress.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {modules.map((module) => {
+                  const isCompleted = Boolean(progressByModule.get(module.id)?.completed)
+                  const isToggling = togglingIds.has(module.id)
+
+                  return (
+                    <motion.div
+                      key={module.id}
+                      layout
+                      className={`rounded-lg border p-4 transition-all duration-300 ${
+                        isCompleted
+                          ? 'border-emerald-400/40 bg-emerald-500/10'
+                          : 'border-white/10 bg-white/5'
+                      }`}
+                    >
+                      <p className="text-sm font-medium mb-3">{module.module_name}</p>
+                      <button
+                        type="button"
+                        disabled={isToggling || !currentUserId}
+                        onClick={() => toggleModuleCompletion(module.id, { subject: selectedSubjectName })}
+                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-300 hover:scale-105 disabled:opacity-60 ${
+                          isCompleted
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                        }`}
+                      >
+                        {isCompleted && <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {isToggling ? 'Saving...' : isCompleted ? '✔ Completed' : 'Mark as Done'}
+                      </button>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {selectedSubject && (
           <motion.div
