@@ -6,7 +6,7 @@ import ProgressCharts from '../../components/dashboard/ProgressCharts'
 import SubjectsProgressSection from '../../components/dashboard/SubjectsProgressSection'
 import TeamsSection from '../../components/dashboard/TeamsSection'
 import WeeklyProgressSection from '../../components/dashboard/WeeklyProgressSection'
-import { useUserModuleProgress } from '../../lib/hooks/useUserModuleProgress'
+import type { ModuleProgressRow } from '../../lib/hooks/useUserModuleProgress'
 
 type SubjectRow = {
   id: string
@@ -34,28 +34,20 @@ export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
   const [subjects, setSubjects] = useState<SubjectRow[]>([])
   const [modules, setModules] = useState<ModuleRow[]>([])
+  const [progressRows, setProgressRows] = useState<ModuleProgressRow[]>([])
   const [teams, setTeams] = useState<TeamRow[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([])
   const [loading, setLoading] = useState(true)
-
-  const moduleIds = useMemo(() => modules.map((module) => module.id), [modules])
-
-  const {
-    rows: progressRows,
-    completedCount,
-  } = useUserModuleProgress({
-    userId: currentUser?.id ?? null,
-    moduleIds,
-  })
 
   useEffect(() => {
     async function loadDashboard() {
       setLoading(true)
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const sessionUser = sessionData?.session?.user
+      const { data: authData } = await supabase.auth.getUser()
+      const sessionUser = authData?.user
 
       if (!sessionUser) {
+        console.error('No user found')
         setCurrentUser(null)
         setLoading(false)
         return
@@ -88,6 +80,17 @@ export default function DashboardPage() {
 
       setSubjects(resolvedSubjects)
       setModules(resolvedModules)
+
+      const { data: progressData, error: progressError } = await supabase
+        .from('user_module_progress')
+        .select('id, user_id, module_id, subject, completed, created_at, updated_at')
+        .eq('user_id', sessionUser.id)
+
+      if (progressError) {
+        console.error(progressError)
+      } else {
+        setProgressRows((progressData || []) as ModuleProgressRow[])
+      }
 
       const { data: memberships } = await supabase
         .from('team_members')
@@ -129,10 +132,7 @@ export default function DashboardPage() {
     void loadDashboard()
   }, [])
 
-  const completedModuleIds = useMemo(
-    () => new Set(progressRows.filter((row) => row.completed).map((row) => row.module_id)),
-    [progressRows]
-  )
+  const completedCount = useMemo(() => progressRows.filter((row) => row.completed).length, [progressRows])
 
   const remainingModules = Math.max(0, modules.length - completedCount)
 
@@ -154,11 +154,19 @@ export default function DashboardPage() {
   }, [progressRows])
 
   const subjectsProgress = useMemo(() => {
+    const completedBySubject = new Map<string, number>()
+
+    for (const row of progressRows) {
+      if (!row.completed) continue
+      if (!row.subject) continue
+      completedBySubject.set(row.subject, (completedBySubject.get(row.subject) || 0) + 1)
+    }
+
     return subjects
       .map((subject) => {
         const subjectModules = modules.filter((module) => module.subject_id === subject.id)
         const totalModules = subjectModules.length
-        const completedModules = subjectModules.filter((module) => completedModuleIds.has(module.id)).length
+        const completedModules = Math.min(totalModules, completedBySubject.get(subject.name) || 0)
         const percentCompleted = totalModules === 0 ? 0 : Math.round((completedModules / totalModules) * 100)
 
         return {
@@ -170,7 +178,7 @@ export default function DashboardPage() {
         }
       })
       .filter((subject) => subject.totalModules > 0)
-  }, [subjects, modules, completedModuleIds])
+  }, [subjects, modules, progressRows])
 
   const teamsSummary = useMemo(() => {
     if (!currentUser) return []
