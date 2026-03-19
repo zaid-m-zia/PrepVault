@@ -90,17 +90,16 @@ export default function ContributionHeatmap() {
   // STEP 3: Generate last 90 days
   const days = Array.from({ length: 90 })
     .map((_, i) => {
-      const date = subDays(new Date(), i)
+      const date = subDays(new Date(), 89 - i)
       return format(date, 'yyyy-MM-dd')
     })
-    .reverse()
 
   // STEP 4: Color logic based on completion count
   function getColor(count: number): string {
     if (!count) return 'bg-gray-200 dark:bg-gray-800'
-    if (count === 1) return 'bg-blue-200 dark:bg-blue-900'
-    if (count === 2) return 'bg-blue-400 dark:bg-blue-700'
-    if (count >= 3) return 'bg-blue-600 dark:bg-blue-500'
+    if (count === 1) return 'bg-green-300 dark:bg-green-900'
+    if (count === 2) return 'bg-green-500 dark:bg-green-700'
+    if (count >= 3) return 'bg-green-600 dark:bg-green-500'
     return 'bg-gray-200 dark:bg-gray-800'
   }
 
@@ -135,36 +134,24 @@ export default function ContributionHeatmap() {
       </div>
 
       {/* STEP 8: Responsive heatmap grid */}
-      <div className="overflow-x-auto">
-        <div className="min-w-fit">
-          {/* STEP 5: UI Grid */}
-          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(0, 1fr))' }}>
-            {days.map(date => {
-              const count = heatmapData[date] || 0
-              const displayDate = new Date(date)
-              const dateDisplay = format(displayDate, 'MMM d')
+      <div className="w-full flex justify-center mt-4">
+        <div className="w-full max-w-[1000px]">
+          <div className="w-full overflow-hidden">
+            <div className="flex justify-center">
+              <div className="grid grid-flow-col grid-rows-7 gap-[4px]">
+                {days.map((date) => {
+                  const count = heatmapData[date] || 0
 
-              return (
-                <div
-                  key={date}
-                  className="group relative"
-                  title={`${count} module${count !== 1 ? 's' : ''} on ${dateDisplay}`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-sm ${getColor(count)} transition-all duration-200 hover:ring-2 hover:ring-offset-1 hover:ring-blue-500 dark:hover:ring-blue-400 cursor-pointer transform hover:scale-125`}
-                  />
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-10">
-                    <div className="bg-gray-900 dark:bg-gray-950 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                      <div className="font-semibold">{dateDisplay}</div>
-                      <div className="text-gray-300">
-                        {count} module{count !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+                  return (
+                    <div
+                      key={date}
+                      title={`${count} modules on ${date}`}
+                      className={`w-[16px] h-[16px] rounded-[3px] ${getColor(count)} transition-colors duration-200`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -174,9 +161,9 @@ export default function ContributionHeatmap() {
         <span className="text-gray-600 dark:text-gray-400">Less</span>
         <div className="flex gap-1">
           <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-800"></div>
-          <div className="w-4 h-4 rounded-sm bg-blue-200 dark:bg-blue-900"></div>
-          <div className="w-4 h-4 rounded-sm bg-blue-400 dark:bg-blue-700"></div>
-          <div className="w-4 h-4 rounded-sm bg-blue-600 dark:bg-blue-500"></div>
+          <div className="w-4 h-4 rounded-sm bg-green-200 dark:bg-green-900"></div>
+          <div className="w-4 h-4 rounded-sm bg-green-400 dark:bg-green-700"></div>
+          <div className="w-4 h-4 rounded-sm bg-green-600 dark:bg-green-500"></div>
         </div>
         <span className="text-gray-600 dark:text-gray-400">More</span>
       </div>
