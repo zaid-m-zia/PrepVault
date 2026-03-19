@@ -8,6 +8,13 @@ interface HeatmapData {
   [date: string]: number
 }
 
+function getLocalDateString(date: Date | string | number = new Date()): string {
+  const resolvedDate = new Date(date)
+  return new Date(resolvedDate.getTime() - resolvedDate.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0]
+}
+
 export default function ContributionHeatmap() {
   const [heatmapData, setHeatmapData] = useState<HeatmapData>({})
   const [loading, setLoading] = useState(true)
@@ -57,7 +64,7 @@ export default function ContributionHeatmap() {
     const counts: HeatmapData = {}
 
     data.forEach(item => {
-      const date = new Date(item.created_at).toISOString().split('T')[0]
+      const date = getLocalDateString(item.created_at)
       if (!counts[date]) counts[date] = 0
       counts[date] += 1
     })
@@ -75,7 +82,7 @@ export default function ContributionHeatmap() {
     let today = new Date()
 
     while (true) {
-      const date = today.toISOString().split('T')[0]
+      const date = getLocalDateString(today)
       if (data[date]) {
         streak++
         today.setDate(today.getDate() - 1)
@@ -91,15 +98,15 @@ export default function ContributionHeatmap() {
   const days = Array.from({ length: 90 })
     .map((_, i) => {
       const date = subDays(new Date(), 89 - i)
-      return format(date, 'yyyy-MM-dd')
+      return getLocalDateString(date)
     })
 
   // STEP 4: Color logic based on completion count
   function getColor(count: number): string {
     if (!count) return 'bg-gray-200 dark:bg-gray-800'
-    if (count === 1) return 'bg-green-300 dark:bg-green-900'
-    if (count === 2) return 'bg-green-500 dark:bg-green-700'
-    if (count >= 3) return 'bg-green-600 dark:bg-green-500'
+    if (count === 1) return 'bg-green-200 dark:bg-green-900'
+    if (count === 2) return 'bg-green-400 dark:bg-green-700'
+    if (count >= 3) return 'bg-green-600 dark:bg-green-400'
     return 'bg-gray-200 dark:bg-gray-800'
   }
 
@@ -136,18 +143,26 @@ export default function ContributionHeatmap() {
       {/* STEP 8: Responsive heatmap grid */}
       <div className="w-full flex justify-center mt-4">
         <div className="w-full max-w-[1000px]">
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <div className="flex justify-center">
               <div className="grid grid-flow-col grid-rows-7 gap-[4px]">
                 {days.map((date) => {
                   const count = heatmapData[date] || 0
+                  const displayDate = format(new Date(`${date}T00:00:00`), 'MMM d, yyyy')
 
                   return (
                     <div
                       key={date}
-                      title={`${count} modules on ${date}`}
-                      className={`w-[16px] h-[16px] rounded-[3px] ${getColor(count)} transition-colors duration-200`}
-                    />
+                      className="relative group"
+                    >
+                      <div
+                        className={`w-[16px] h-[16px] rounded-[3px] ${getColor(count)} ${count > 0 ? 'shadow-[0_0_6px_rgba(34,197,94,0.6)]' : ''} transition-all duration-200 ease-in-out transform-gpu hover:scale-125 hover:ring-2 hover:ring-green-400`}
+                      />
+
+                      <div className="absolute z-50 bottom-[125%] left-1/2 -translate-x-1/2 px-2 py-1 rounded-md text-xs bg-black text-white dark:bg-white dark:text-black opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                        {count} modules on {displayDate}
+                      </div>
+                    </div>
                   )
                 })}
               </div>

@@ -31,6 +31,13 @@ type TeamMemberRow = {
   user_id: string
 }
 
+function getLocalDateString(date: Date | string | number = new Date()): string {
+  const resolvedDate = new Date(date)
+  return new Date(resolvedDate.getTime() - resolvedDate.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0]
+}
+
 export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
   const [subjects, setSubjects] = useState<SubjectRow[]>([])
@@ -155,7 +162,7 @@ export default function DashboardPage() {
       const rawDate = row.updated_at || row.created_at
       if (!rawDate) continue
 
-      const date = new Date(rawDate).toISOString().slice(0, 10)
+      const date = getLocalDateString(rawDate)
       countsByDate.set(date, (countsByDate.get(date) || 0) + 1)
     }
 
