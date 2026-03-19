@@ -165,19 +165,46 @@ export default function DashboardPage() {
   }, [progressRows])
 
   const subjectsProgress = useMemo(() => {
-    const completedBySubject = new Map<string, number>()
+    const completedModuleKeysBySubject = new Map<string, Set<string>>()
+    const latestActivityBySubject = new Map<string, number>()
 
     for (const row of progressRows) {
+      if (row.subject) {
+        const rawActivity = row.updated_at || row.created_at
+        if (rawActivity) {
+          const activityTime = new Date(rawActivity).getTime()
+          const existingActivity = latestActivityBySubject.get(row.subject) || 0
+          if (activityTime > existingActivity) {
+            latestActivityBySubject.set(row.subject, activityTime)
+          }
+        }
+      }
+
       if (!row.completed) continue
       if (!row.subject) continue
-      completedBySubject.set(row.subject, (completedBySubject.get(row.subject) || 0) + 1)
+      if (!row.module_id) continue
+
+      const existing = completedModuleKeysBySubject.get(row.subject) || new Set<string>()
+      existing.add(row.module_id)
+      completedModuleKeysBySubject.set(row.subject, existing)
     }
 
     return subjects
       .map((subject) => {
         const subjectModules = modules.filter((module) => module.subject_id === subject.id)
         const totalModules = subjectModules.length
-        const completedModules = Math.min(totalModules, completedBySubject.get(subject.name) || 0)
+        const completedKeySet = completedModuleKeysBySubject.get(subject.name) || new Set<string>()
+
+        const completedModules = subjectModules.filter((module) => {
+          const progressKey = `${subject.name}-${module.module_name}`
+          return completedKeySet.has(progressKey)
+        }).length
+
+        const nextIncompleteModule = subjectModules.find((module) => {
+          const progressKey = `${subject.name}-${module.module_name}`
+          return !completedKeySet.has(progressKey)
+        })
+
         const percentCompleted = totalModules === 0 ? 0 : Math.round((completedModules / totalModules) * 100)
 
         return {
@@ -186,9 +213,12 @@ export default function DashboardPage() {
           completedModules,
           totalModules,
           percentCompleted,
+          nextModuleId: nextIncompleteModule?.id || null,
+          lastActivityAt: latestActivityBySubject.get(subject.name) || 0,
         }
       })
-      .filter((subject) => subject.totalModules > 0)
+      .filter((subject) => subject.totalModules > 0 && subject.completedModules > 0)
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
   }, [subjects, modules, progressRows])
 
   const teamsSummary = useMemo(() => {
