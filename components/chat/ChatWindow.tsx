@@ -6,7 +6,6 @@ import supabase from '../../lib/supabaseClient'
 import { createNotification } from '../../lib/notifications'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
-import MessageLimitPopup from './MessageLimitPopup'
 import { ChevronDown } from 'lucide-react'
 
 type Message = {
@@ -55,9 +54,7 @@ export default function ChatWindow({
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showLimitPopup, setShowLimitPopup] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
-  const [messageCount, setMessageCount] = useState(0)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [replyToMessageId, setReplyToMessageId] = useState<string | null>(null)
   const [showJumpToLatest, setShowJumpToLatest] = useState(false)
@@ -274,10 +271,6 @@ export default function ChatWindow({
               return [...prev, incomingMessage]
             })
 
-            if (incomingMessage.sender_id === currentUserId) {
-              setMessageCount((prev) => prev + 1)
-            }
-
             if (incomingMessage.sender_id === selectedUserId && incomingMessage.receiver_id === currentUserId) {
               void supabase
                 .from('messages')
@@ -396,12 +389,6 @@ export default function ChatWindow({
       setMessages(resolvedMessages)
       await fetchReactions(resolvedMessages.map((message) => message.id))
 
-      const sentCount = resolvedMessages.filter(
-        (message) => message.sender_id === currentUserId && message.receiver_id === selectedUserId
-      ).length
-
-      setMessageCount(sentCount)
-
       requestAnimationFrame(() => scrollToBottom(forceScroll))
     } catch (err) {
       console.error('Error fetching messages:', err)
@@ -410,11 +397,6 @@ export default function ChatWindow({
 
   async function handleSendMessage(text: string, replyToId?: string | null) {
     try {
-      if (!isFollowing && messageCount >= 2) {
-        setShowLimitPopup(true)
-        return
-      }
-
       const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -442,10 +424,6 @@ export default function ChatWindow({
 
       if (notificationError) {
         console.error('Error creating DM notification:', notificationError)
-      }
-
-      if (!isFollowing && messageCount + 1 >= 2) {
-        setShowLimitPopup(true)
       }
 
       await setTypingStatus(false)
@@ -684,14 +662,6 @@ export default function ChatWindow({
         </div>
       )}
 
-      {showLimitPopup && (
-        <MessageLimitPopup
-          recipientId={selectedUser?.id || ''}
-          recipientUsername={selectedUser?.username || 'User'}
-          onClose={() => setShowLimitPopup(false)}
-        />
-      )}
-
       <div className="border-t border-gray-200 bg-gray-50 p-6 dark:border-slate-800 dark:bg-slate-900">
         <MessageInput
           onSendMessage={handleSendMessage}
@@ -702,8 +672,6 @@ export default function ChatWindow({
           onCancelEdit={() => setEditingMessageId(null)}
           onCancelReply={() => setReplyToMessageId(null)}
           onTypingChange={handleTypingChange}
-          disabled={!isFollowing && messageCount >= 2}
-          disabledReason={!isFollowing && messageCount >= 2 ? 'Message limit reached' : undefined}
         />
       </div>
     </div>
