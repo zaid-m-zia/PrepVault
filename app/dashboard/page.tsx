@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import ProgressCharts from '../../components/dashboard/ProgressCharts'
 import SubjectsProgressSection from '../../components/dashboard/SubjectsProgressSection'
 import TeamsSection from '../../components/dashboard/TeamsSection'
 import WeeklyProgressSection from '../../components/dashboard/WeeklyProgressSection'
+import ContributionHeatmap from '../../components/dashboard/ContributionHeatmap'
 import type { ModuleProgressRow } from '../../lib/hooks/useUserModuleProgress'
 
 type SubjectRow = {
@@ -39,8 +40,7 @@ export default function DashboardPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
       setLoading(true)
 
       const { data: authData } = await supabase.auth.getUser()
@@ -127,10 +127,21 @@ export default function DashboardPage() {
       }
 
       setLoading(false)
-    }
-
-    void loadDashboard()
   }, [])
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
+
+  useEffect(() => {
+    const refresh = () => { void loadDashboard() }
+
+    window.addEventListener('progressUpdated', refresh)
+
+    return () => {
+      window.removeEventListener('progressUpdated', refresh)
+    }
+  }, [loadDashboard])
 
   const completedCount = useMemo(() => progressRows.filter((row) => row.completed).length, [progressRows])
 
@@ -235,6 +246,8 @@ export default function DashboardPage() {
           remainingModules={remainingModules}
           progressOverTime={progressOverTime}
         />
+
+        <ContributionHeatmap />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SubjectsProgressSection subjects={subjectsProgress} />

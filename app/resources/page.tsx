@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Play } from 'lucide-react'
+import { ChevronDown, Play } from 'lucide-react'
 import ResourceViewer from '../../components/ResourceViewer'
 import StudyPath from '../../components/resources/StudyPath'
 import { buttonClasses } from '../../components/ui/Button'
@@ -130,38 +130,55 @@ function ResourcesPageContent() {
   const [loadingStudyPath, setLoadingStudyPath] = useState(false)
   const [showRoadmap, setShowRoadmap] = useState(false)
   const [togglingModuleIds, setTogglingModuleIds] = useState<string[]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const selectedSubjectName = subjects.find((subject) => subject.id === selectedSubject)?.name || 'Unknown Subject'
 
-  async function toggleModule(moduleId: string, subject: string) {
-    console.log('CLICKED', moduleId)
-
+  const fetchProgress = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       console.error('No user found')
       return
     }
 
+    const { data, error } = await supabase
+      .from('user_module_progress')
+      .select('*')
+      .eq('user_id', user.id)
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    const completedIds = (data || [])
+      .filter((item: any) => item.completed)
+      .map((item: any) => item.module_id)
+
+    const uniqueIds = [...new Set(completedIds)]
+    setCompletedModules(uniqueIds)
+  }, [])
+
+  async function toggleModule(moduleId: string, subject: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
     setTogglingModuleIds((prev) => (prev.includes(moduleId) ? prev : [...prev, moduleId]))
 
-    const { data: existing, error } = await supabase
+    const { data: existing } = await supabase
       .from('user_module_progress')
       .select('*')
       .eq('user_id', user.id)
       .eq('module_id', moduleId)
       .maybeSingle()
 
-    if (error) console.error(error)
-
     if (existing) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('user_module_progress')
         .update({ completed: !existing.completed })
         .eq('id', existing.id)
-
-      if (updateError) console.error(updateError)
     } else {
-      const { error: insertError } = await supabase
+      await supabase
         .from('user_module_progress')
         .insert({
           user_id: user.id,
@@ -169,50 +186,34 @@ function ResourcesPageContent() {
           subject: subject,
           completed: true
         })
-
-      if (insertError) console.error(insertError)
     }
 
-    console.log('TOGGLE SUCCESS')
+    setCompletedModules((prev) => {
+      const updated = prev.includes(moduleId)
+        ? prev.filter((id) => id !== moduleId)
+        : [...prev, moduleId]
 
-    setCompletedModules(prev => {
-      if (prev.includes(moduleId)) {
-        return prev.filter(id => id !== moduleId)
-      } else {
-        return [...prev, moduleId]
-      }
+      return [...new Set(updated)]
     })
+
+    window.dispatchEvent(new Event('progressUpdated'))
 
     setTogglingModuleIds((prev) => prev.filter((id) => id !== moduleId))
   }
 
   useEffect(() => {
-    async function fetchProgress() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.error('No user found')
-        return
-      }
+    void fetchProgress()
+  }, [fetchProgress])
 
-      const { data, error } = await supabase
-        .from('user_module_progress')
-        .select('*')
-        .eq('user_id', user.id)
+  useEffect(() => {
+    const refresh = () => { void fetchProgress() }
 
-      if (error) {
-        console.error(error)
-        return
-      }
+    window.addEventListener('progressUpdated', refresh)
 
-      const completedIds = (data || [])
-        .filter((item: any) => item.completed)
-        .map((item: any) => item.module_id)
-
-      setCompletedModules(completedIds)
+    return () => {
+      window.removeEventListener('progressUpdated', refresh)
     }
-
-    fetchProgress()
-  }, [])
+  }, [fetchProgress])
 
   // Load branches on mount
   useEffect(() => {
@@ -756,43 +757,74 @@ function ResourcesPageContent() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <div className="glass rounded-xl border border-white/10 p-5">
-              <h3 className="text-base font-semibold mb-1">Module Progress</h3>
-              <p className="text-sm text-secondary-text mb-4">Track each module individually with persistent progress.</p>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+              <div
+                onClick={() => setIsExpanded((prev) => !prev)}
+                className="flex items-center justify-between cursor-pointer select-none"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Module Progress</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Track each module individually with persistent progress.
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {modules.map((module) => {
-                  const moduleProgressId = `${selectedSubjectName}-${module.module_name}`
-                  const isCompleted = completedModules.includes(moduleProgressId)
-                  const isToggling = togglingModuleIds.includes(moduleProgressId)
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${
+                    isExpanded ? 'rotate-180' : ''
+                  }`}
+                />
+              </div>
 
-                  return (
-                    <motion.div
-                      key={module.id}
-                      layout
-                      className={`rounded-lg border p-4 transition-all duration-300 ${
-                        isCompleted
-                          ? 'border-emerald-400/40 bg-emerald-500/10'
-                          : 'border-white/10 bg-white/5'
-                      }`}
-                    >
-                      <p className="text-sm font-medium mb-3">{module.module_name}</p>
-                      {isCompleted ? (
-                        <button className="bg-green-500 text-white px-4 py-2 rounded-lg transition-all duration-300">
-                          ✔ Completed
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => toggleModule(moduleProgressId, selectedSubjectName)}
-                          disabled={isToggling}
-                          className="bg-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+              <div
+                className={`transition-all duration-500 overflow-hidden ${
+                  isExpanded ? 'max-h-[1000px] mt-4' : 'max-h-0'
+                }`}
+              >
+                <div
+                  className={`transition-opacity duration-300 ${
+                    isExpanded ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {modules.map((module) => {
+                      const moduleProgressId = `${selectedSubjectName}-${module.module_name}`
+                      const isCompleted = completedModules.includes(moduleProgressId)
+                      const isToggling = togglingModuleIds.includes(moduleProgressId)
+
+                      return (
+                        <motion.div
+                          key={module.id}
+                          layout
+                          className={`rounded-lg border p-4 transition-all duration-300 ${
+                            isCompleted
+                              ? 'border-emerald-400/40 bg-emerald-500/10'
+                              : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40'
+                          }`}
                         >
-                          {isToggling ? 'Saving...' : 'Mark as Done'}
-                        </button>
-                      )}
-                    </motion.div>
-                  )
-                })}
+                          <p className="text-sm font-medium mb-3 text-gray-900 dark:text-white">{module.module_name}</p>
+                          {isCompleted ? (
+                            <button
+                              onClick={() => toggleModule(moduleProgressId, selectedSubjectName)}
+                              disabled={isToggling}
+                              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all duration-300 transform active:scale-95 disabled:opacity-70"
+                            >
+                              {isToggling ? 'Saving...' : '✔ Completed'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => toggleModule(moduleProgressId, selectedSubjectName)}
+                              disabled={isToggling}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all duration-300 transform active:scale-95 disabled:opacity-70"
+                            >
+                              {isToggling ? 'Saving...' : 'Mark as Done'}
+                            </button>
+                          )}
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
